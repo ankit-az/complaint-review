@@ -124,7 +124,7 @@ export default function HomePage() {
       companyName: "Apex Logistics & Freight",
       companySlug: "apex-logistics",
       rating: 5,
-      title: "Delivered sensitive freight across country on time",
+      title: "Delivered sensitive freight across country on timo",
       content:
         "Real-time GPS telemetry and proactive dispatchers kept us updated at every checkpoint. No damages and arrived 3 hours ahead of scheduled delivery window.",
       author: "David Chen",
