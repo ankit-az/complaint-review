@@ -20,6 +20,7 @@ import {
   ThumbsUp,
   MessageSquare,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -233,6 +234,16 @@ export default function HomePage() {
               </p>
             </div>
           </div>
+
+          {/* Demo Data Disclaimer Badge */}
+          <div className="mt-8 flex items-center justify-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-950/40 px-3.5 py-1.5 text-xs text-amber-300 backdrop-blur">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>
+                <strong>Warning / Demo Data:</strong> Platform statistics shown above are mock preview values.
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -320,6 +331,19 @@ export default function HomePage() {
             </Link>
           </div>
 
+          {/* Sample Data Warning Alert Banner */}
+          <div className="mb-8 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 flex items-start gap-3 shadow-xs">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm text-amber-950">
+                Notice: The reviews and metrics below are sample / dummy demonstration data
+              </p>
+              <p className="mt-1 text-amber-800 leading-relaxed">
+                These customer testimonials and company profiles are temporary mock entries for layout preview. In upcoming phases, this section will automatically stream verified live reviews and ratings from the database.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {recentReviews.map((rev) => (
               <Card
@@ -329,13 +353,18 @@ export default function HomePage() {
                 <div>
                   {/* Company & Rating Header */}
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-                    <Link
-                      href={`/companies/${rev.companySlug}`}
-                      className="font-bold text-slate-900 hover:text-emerald-600 transition-colors flex items-center gap-1.5"
-                    >
-                      <Building2 className="w-4 h-4 text-slate-400" />
-                      {rev.companyName}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/companies/${rev.companySlug}`}
+                        className="font-bold text-slate-900 hover:text-emerald-600 transition-colors flex items-center gap-1.5"
+                      >
+                        <Building2 className="w-4 h-4 text-slate-400" />
+                        {rev.companyName}
+                      </Link>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                        Demo Data
+                      </span>
+                    </div>
                     <StarRating rating={rev.rating} size="sm" />
                   </div>
 

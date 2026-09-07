@@ -13,6 +13,7 @@ import {
   Building2,
   ChevronDown,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 
@@ -23,6 +24,14 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      {/* Global Demo Data Notice Ribbon */}
+      <div className="bg-amber-500 text-slate-950 px-4 py-1.5 text-center text-xs font-semibold flex items-center justify-center gap-2 border-b border-amber-600/30">
+        <AlertTriangle className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+        <span>
+          <strong>Demo Notice:</strong> Currently displaying sample preview data. Live reviews and ratings will be active upon phase release.
+        </span>
+      </div>
+
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <div className="flex items-center gap-8">
