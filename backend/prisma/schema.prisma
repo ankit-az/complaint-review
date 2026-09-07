@@ -1,0 +1,214 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  BUSINESS
+  ADMIN
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+  FLAGGED
+  REMOVED
+}
+
+enum VerificationStatus {
+  VERIFIED
+  UNVERIFIED
+}
+
+enum ReportReason {
+  SPAM
+  OFFENSIVE
+  CONFLICT_OF_INTEREST
+  FAKE_REVIEW
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  RESOLVED
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role      @default(USER)
+  avatarUrl    String?
+  isVerified   Boolean   @default(false)
+  isSuspended  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  refreshTokens   RefreshToken[]
+  reviews         Review[]
+  businessProfile BusinessProfile?
+  reportsFiled    Report[]          @relation("UserReports")
+  helpfulVotes    HelpfulVote[]
+  companyResponses CompanyResponse[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  iconName    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  companies Company[]
+
+  @@index([slug])
+}
+
+model Company {
+  id             String    @id @default(uuid())
+  name           String
+  slug           String    @unique
+  description    String?
+  logoUrl        String?
+  websiteUrl     String?
+  contactEmail   String?
+  contactPhone   String?
+  address        String?
+  city           String?
+  country        String?
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  isClaimed      Boolean   @default(false)
+  isVerified     Boolean   @default(false)
+  isSuspended    Boolean   @default(false)
+
+  // Cached aggregate stats for O(1) reads
+  overallRating  Float     @default(0.0)
+  reviewCount    Int       @default(0)
+  star1Count     Int       @default(0)
+  star2Count     Int       @default(0)
+  star3Count     Int       @default(0)
+  star4Count     Int       @default(0)
+  star5Count     Int       @default(0)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  reviews          Review[]
+  businessProfiles BusinessProfile[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([name])
+}
+
+model BusinessProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  jobTitle    String?
+  isOwner     Boolean  @default(false)
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model Review {
+  id                 String             @id @default(uuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId          String
+  company            Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  rating             Int
+  title              String
+  content            String
+  status             ReviewStatus       @default(PUBLISHED)
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  helpfulCount       Int                @default(0)
+  reportCount        Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  response     CompanyResponse?
+  reports      Report[]
+  helpfulVotes HelpfulVote[]
+
+  @@index([companyId, status])
+  @@index([userId])
+  @@index([rating])
+}
+
+model CompanyResponse {
+  id          String   @id @default(uuid())
+  reviewId    String   @unique
+  review      Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  responderId String
+  responder   User     @relation(fields: [responderId], references: [id], onDelete: Cascade)
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reviewId])
+}
+
+model HelpfulVote {
+  id        String   @id @default(uuid())
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+}
+
+model Report {
+  id           String       @id @default(uuid())
+  reviewId     String
+  review       Review       @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporterId   String
+  reporter     User         @relation("UserReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  reason       ReportReason
+  details      String?
+  status       ReportStatus @default(PENDING)
+  resolvedById String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([reviewId])
+  @@index([reporterId])
+  @@index([status])
+}
