@@ -73,16 +73,26 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     async function load() {
+      const fallbackList = getAllCategories();
+      const fallbackCounts = fallbackList.reduce((acc, c) => {
+        acc[c.slug] = c.companyCount;
+        return acc;
+      }, {});
+
       try {
-        // Try backend API first, if live backend is reachable
         const res = await api.get("/categories");
         if (res?.success && res.data?.categories && res.data.categories.length > 0) {
-          setCategories(res.data.categories);
+          const merged = res.data.categories.map((c) => ({
+            ...c,
+            companyCount: (c.companyCount && c.companyCount > 0)
+              ? c.companyCount
+              : (fallbackCounts[c.slug] || 250),
+          }));
+          setCategories(merged);
         }
       } catch (err) {
-        // Live fallback to internal dataset ensures zero errors on Vercel
         console.warn("Backend API unavailable, using built-in categories data:", err.message);
-        setCategories(getAllCategories());
+        setCategories(fallbackList);
       } finally {
         setLoading(false);
       }

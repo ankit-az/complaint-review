@@ -602,6 +602,27 @@ export const CATEGORIES_DATA = [
   },
 ];
 
+const ALIAS_MAP = {
+  "telecom-internet": "telecommunications",
+  telecommunications: "telecom-internet",
+  "automotive-vehicles": "automotive",
+  automotive: "automotive-vehicles",
+  "food-beverages": "restaurants-food",
+  "restaurants-food": "food-beverages",
+  "education-training": "education",
+  education: "education-training",
+  "home-improvement": "home-services",
+  "home-services": "home-improvement",
+  "marketing-advertising": "media-marketing",
+  "media-marketing": "marketing-advertising",
+  "industrial-manufacturing": "manufacturing-industrial",
+  "manufacturing-industrial": "industrial-manufacturing",
+  "non-profit-charities": "non-profit-charity",
+  "non-profit-charity": "non-profit-charities",
+  "family-childcare": "childcare-parenting",
+  "childcare-parenting": "family-childcare",
+};
+
 export function getAllCategories() {
   return CATEGORIES_DATA.map((cat) => ({
     id: cat.id,
@@ -615,8 +636,13 @@ export function getAllCategories() {
 
 export function getCategoryBySlug(slug) {
   if (!slug) return null;
-  const match = CATEGORIES_DATA.find((c) => c.slug.toLowerCase() === slug.toLowerCase());
+  const s = slug.toLowerCase();
+  let match = CATEGORIES_DATA.find((c) => c.slug.toLowerCase() === s);
+  if (!match && ALIAS_MAP[s]) {
+    match = CATEGORIES_DATA.find((c) => c.slug.toLowerCase() === ALIAS_MAP[s].toLowerCase());
+  }
   return match || null;
 }
 
 export default CATEGORIES_DATA;
+
