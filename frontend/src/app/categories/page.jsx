@@ -73,26 +73,18 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     async function load() {
-      const fallbackList = getAllCategories();
-      const fallbackCounts = fallbackList.reduce((acc, c) => {
-        acc[c.slug] = c.companyCount;
-        return acc;
-      }, {});
-
       try {
         const res = await api.get("/categories");
-        if (res?.success && res.data?.categories && res.data.categories.length > 0) {
-          const merged = res.data.categories.map((c) => ({
+        if (res?.success && res.data?.categories) {
+          const list = res.data.categories.map((c) => ({
             ...c,
-            companyCount: (c.companyCount && c.companyCount > 0)
-              ? c.companyCount
-              : (fallbackCounts[c.slug] || 250),
+            companyCount: typeof c.companyCount === "number" ? c.companyCount : 0,
           }));
-          setCategories(merged);
+          setCategories(list);
         }
       } catch (err) {
         console.warn("Backend API unavailable, using built-in categories data:", err.message);
-        setCategories(fallbackList);
+        setCategories(getAllCategories());
       } finally {
         setLoading(false);
       }
@@ -175,7 +167,7 @@ export default function CategoriesPage() {
                   </div>
 
                   <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-                    <span>{cat.companyCount || 0} companies</span>
+                    <span>{cat.companyCount === 1 ? "1 company" : `${cat.companyCount || 0} companies`}</span>
                     <span className="text-emerald-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                       Browse Companies
                       <ArrowRight className="w-3.5 h-3.5" />

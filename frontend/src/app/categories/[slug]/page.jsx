@@ -93,11 +93,7 @@ export default function CategoryDetailPage() {
         const res = await api.get(`/categories/${slug}`);
         if (res?.success && res.data?.category) {
           setCategory(res.data.category);
-          const fallbackComps = getCategoryBySlug(slug)?.companies || [];
-          const comps = (res.data.category.companies && res.data.category.companies.length > 0)
-            ? res.data.category.companies
-            : fallbackComps;
-          setCompanies(comps);
+          setCompanies(res.data.category.companies || []);
           setError(null);
         } else {
           const fallback = getCategoryBySlug(slug);
