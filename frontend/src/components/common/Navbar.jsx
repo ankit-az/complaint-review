@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/store/AuthContext";
 import {
   Shield,
@@ -18,13 +19,19 @@ import {
 import Button from "@/components/ui/Button";
 
 export function Navbar() {
+  const pathname = usePathname();
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
+  // Hide consumer navbar on dedicated SaaS business dashboard routes
+  if (pathname?.startsWith("/business/") && pathname !== "/business") {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      {/* Global Demo Data Notice Ribbon */}
+      {/* Global Demo Data Notice Ribbon with Warning Sign */}
       <div className="bg-amber-500 text-slate-950 px-4 py-1.5 text-center text-xs font-semibold flex items-center justify-center gap-2 border-b border-amber-600/30">
         <AlertTriangle className="w-3.5 h-3.5 text-slate-950 shrink-0" />
         <span>
@@ -64,7 +71,7 @@ export function Navbar() {
               Explore Companies
             </Link>
             <Link
-              href="/companies"
+              href="/writereview"
               className="flex items-center gap-1.5 transition-colors hover:text-emerald-600"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -206,6 +213,14 @@ export function Navbar() {
               className="px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100"
             >
               Explore Companies
+            </Link>
+            <Link
+              href="/writereview"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-semibold text-emerald-600 hover:bg-emerald-50 flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              Write a Review
             </Link>
             <Link
               href="/business"

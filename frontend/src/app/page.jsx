@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -20,16 +20,20 @@ import {
   ThumbsUp,
   MessageSquare,
   Sparkles,
+  RefreshCw,
   AlertTriangle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import StarRating from "@/components/ui/StarRating";
 import Badge from "@/components/ui/Badge";
+import api from "@/lib/api";
+import { useAuth } from "@/store/AuthContext";
 
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [hoverRating, setHoverRating] = useState(0);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -90,94 +94,158 @@ export default function HomePage() {
     },
   ];
 
-  // Verified Recent Reviews Mock/Seed Showcase
-  const recentReviews = [
-    {
-      id: "rev-1",
-      companyName: "CloudScale Hosting",
-      companySlug: "cloudscale-hosting",
-      rating: 5,
-      title: "Phenomenal zero-downtime migration and rapid support",
-      content:
-        "Migrated over 40 client websites with zero hiccups. When we needed help with custom SSL certificates, their support engineer answered within 4 minutes on live chat.",
-      author: "Marcus Vance",
-      authorRole: "Verified Buyer",
-      date: "2 hours ago",
-      helpfulCount: 18,
-      hasCompanyResponse: true,
-    },
-    {
-      id: "rev-2",
-      companyName: "Finova Digital Banking",
-      companySlug: "finova-banking",
-      rating: 4,
-      title: "Clean mobile UI, fast international wire transfers",
-      content:
-        "Been using Finova for business cross-border payments. The exchange rates are transparent with no hidden margins. Account verification took less than 24 hours.",
-      author: "Elena Rostova",
-      authorRole: "Verified Customer",
-      date: "4 hours ago",
-      helpfulCount: 9,
-      hasCompanyResponse: true,
-    },
-    {
-      id: "rev-3",
-      companyName: "Apex Logistics & Freight",
-      companySlug: "apex-logistics",
-      rating: 5,
-      title: "Delivered sensitive freight across country on timo",
-      content:
-        "Real-time GPS telemetry and proactive dispatchers kept us updated at every checkpoint. No damages and arrived 3 hours ahead of scheduled delivery window.",
-      author: "David Chen",
-      authorRole: "Verified Customer",
-      date: "6 hours ago",
-      helpfulCount: 14,
-      hasCompanyResponse: false,
-    },
-  ];
+  // Live Backend Reviews State & Business Filter
+  const { user } = useAuth();
+  const [recentReviews, setRecentReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [votedReviews, setVotedReviews] = useState({});
+  const [votingId, setVotingId] = useState(null);
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = useState("all");
+  const [availableCompanies, setAvailableCompanies] = useState([]);
+
+  // Load available companies for filter tabs
+  useEffect(() => {
+    async function fetchCompanies() {
+      try {
+        const res = await api.get("/companies?limit=10");
+        if (res?.success && Array.isArray(res.data?.companies)) {
+          setAvailableCompanies(res.data.companies);
+        }
+      } catch (e) { }
+    }
+    fetchCompanies();
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchRecentReviews() {
+      try {
+        setLoadingReviews(true);
+        const endpoint =
+          selectedCompanyFilter === "all"
+            ? "/reviews/recent?limit=6"
+            : `/reviews/recent?companySlug=${selectedCompanyFilter}&limit=6`;
+
+        const res = await api.get(endpoint);
+        if (isMounted && res?.success && Array.isArray(res.data?.reviews)) {
+          setRecentReviews(res.data.reviews);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("Failed to load live reviews from backend:", err);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingReviews(false);
+        }
+      }
+    }
+
+    fetchRecentReviews();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCompanyFilter]);
+
+  const handleHelpfulVote = async (e, reviewId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (votedReviews[reviewId] || votingId === reviewId) return;
+
+    // Optimistic UI increment
+    setVotedReviews((prev) => ({ ...prev, [reviewId]: true }));
+    setRecentReviews((prev) =>
+      prev.map((r) =>
+        r.id === reviewId ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } : r
+      )
+    );
+
+    setVotingId(reviewId);
+    try {
+      await api.post(`/reviews/${reviewId}/helpful`);
+    } catch (err) {
+      console.error("Failed to vote review helpful:", err);
+      // Revert if failed
+      setVotedReviews((prev) => {
+        const copy = { ...prev };
+        delete copy[reviewId];
+        return copy;
+      });
+      setRecentReviews((prev) =>
+        prev.map((r) =>
+          r.id === reviewId ? { ...r, helpfulCount: Math.max(0, (r.helpfulCount || 1) - 1) } : r
+        )
+      );
+    } finally {
+      setVotingId(null);
+    }
+  };
+
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return "Recently";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffSecs = Math.floor((now - date) / 1000);
+    if (diffSecs < 60) return "Just now";
+    const diffMins = Math.floor(diffSecs / 60);
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 30) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* 1. HERO SECTION */}
-      <section className="relative overflow-hidden bg-slate-950 text-white pt-16 pb-24 lg:pt-24 lg:pb-32">
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-emerald-500/10 blur-[120px] pointer-events-none" />
+      {/* 1. HERO SECTION (Trustpilot-Inspired Crisp White Theme) */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#f4fbf7] via-white to-slate-50 border-b border-slate-200 pt-16 pb-20 lg:pt-20 lg:pb-24">
+        {/* Subtle decorative background glow accents */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-72 bg-gradient-to-b from-emerald-100/50 via-teal-50/30 to-transparent blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 right-10 w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 -left-20 w-80 h-80 bg-teal-100/25 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          {/* Trust Badge pill */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3.5 py-1.5 text-xs font-semibold text-emerald-400 mb-6 backdrop-blur">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>The Independent Review & Complaint Standard</span>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center z-10">
+          {/* Trustpilot-Style Star Rating Badge Header */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-1.5 text-xs font-semibold text-emerald-800 shadow-xs mb-6">
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <div key={s} className="w-4 h-4 rounded-xs bg-emerald-600 flex items-center justify-center">
+                  <Star className="w-2.5 h-2.5 fill-white text-white" />
+                </div>
+              ))}
+            </div>
+            <span className="font-bold">Trust Integrity Standard</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-600 font-normal">Over 2.4 Million Verified Reviews</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight max-w-4xl mx-auto leading-tight">
-            Find Companies You Can{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
-              Trust.
-            </span>
+          {/* Main Trustpilot-Style Headline */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 max-w-4xl mx-auto leading-tight">
+            Read reviews. Write reviews.
             <br />
-            Share Experiences That Matter.
+            <span className="text-emerald-700">Find companies you can trust.</span>
           </h1>
 
-          <p className="mt-5 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Read transparent reviews, file verified customer complaints, and discover
-            top-rated businesses vetted by authentic buyers worldwide.
+          <p className="mt-5 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            Real customer feedback, verified transaction standards, and transparent corporate complaint resolutions — all in one independent consumer directory.
           </p>
 
-          {/* Interactive Search Bar */}
-          <div className="mt-10 max-w-2xl mx-auto">
+          {/* Trustpilot-Style Prominent Search Bar */}
+          <div className="mt-10 max-w-3xl mx-auto">
             <form
               onSubmit={handleSearch}
-              className="flex flex-col sm:flex-row items-center gap-2 rounded-2xl bg-white p-2 shadow-2xl shadow-emerald-950/40 border border-slate-700/50"
+              className="relative flex flex-col sm:flex-row items-center bg-white rounded-2xl sm:rounded-full p-2 sm:p-2.5 shadow-xl shadow-slate-200/80 border border-slate-200 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/15 transition-all"
             >
-              <div className="flex items-center gap-3 px-3 flex-1 w-full">
-                <Search className="h-5 w-5 text-slate-400 shrink-0" />
+              <div className="flex items-center gap-3 px-4 flex-1 w-full">
+                <Search className="h-6 w-6 text-slate-400 shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Company name, website, or category (e.g. Stripe, Hosting)..."
-                  className="w-full bg-transparent py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  placeholder="Company, category, or service (e.g. Stripe, Hosting, Banks)..."
+                  className="w-full bg-transparent py-3 sm:py-3.5 text-base font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
                 />
               </div>
 
@@ -185,60 +253,121 @@ export default function HomePage() {
                 type="submit"
                 variant="emerald"
                 size="lg"
-                className="w-full sm:w-auto shrink-0 font-bold px-8 shadow-md"
+                className="w-full sm:w-auto shrink-0 font-bold px-8 sm:px-10 py-3.5 rounded-xl sm:rounded-full shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
               >
                 Search
               </Button>
             </form>
 
-            {/* Popular search tags */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
-              <span className="font-semibold text-slate-300">Popular:</span>
-              {["Stripe", "CloudScale", "Shopify", "Nike", "NordVPN"].map((tag) => (
+            {/* Popular Search Categories (Trustpilot style pills) */}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-600">
+              <span className="font-semibold text-slate-700">Popular:</span>
+              {[
+                { name: "Stripe", slug: "stripe" },
+                { name: "CloudScale Hosting", slug: "cloudscale" },
+                { name: "Banking & Finance", slug: "banking-finance" },
+                { name: "Shopify", slug: "shopify" },
+                { name: "Tata Group", slug: "tata" },
+              ].map((tag) => (
                 <button
-                  key={tag}
+                  key={tag.slug}
                   type="button"
-                  onClick={() => router.push(`/search?q=${tag}`)}
-                  className="rounded-full bg-slate-800/80 px-2.5 py-1 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+                  onClick={() => router.push(`/search?q=${tag.name}`)}
+                  className="rounded-full bg-white border border-slate-200 px-3 py-1.5 text-slate-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50/50 transition-colors cursor-pointer font-medium shadow-2xs"
                 >
-                  {tag}
+                  {tag.name}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Trust Metrics Bar */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-slate-800/80">
-            <div className="p-3">
-              <p className="text-2xl sm:text-3xl font-black text-white">2.4M+</p>
-              <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
+          {/* Quick Action CTA & Star Teaser Bar */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <Link href="/writereview">
+              <Button
+                variant="emerald"
+                size="md"
+                className="font-bold shadow-md shadow-emerald-700/15 flex items-center gap-2 px-6 py-3 rounded-full cursor-pointer bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Sparkles className="w-4 h-4 text-emerald-100" />
+                <span>Write a Review</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+
+            <Link href="/companies">
+              <button
+                type="button"
+                className="px-6 py-3 rounded-full border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-sm font-semibold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+              >
+                <Building2 className="w-4 h-4 text-slate-500" />
+                <span>Browse All Companies</span>
+              </button>
+            </Link>
+          </div>
+
+          {/* Trustpilot-Style Interactive Star Rating Strip */}
+          <div className="mt-8 max-w-md mx-auto p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between gap-3 text-xs">
+            <span className="text-slate-700 font-semibold">Rate a company you used:</span>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => router.push(`/writereview?rating=${star}`)}
+                  className="w-7 h-7 rounded-xs flex items-center justify-center transition-all cursor-pointer hover:scale-110"
+                  style={{
+                    backgroundColor:
+                      star <= (hoverRating || 0) ? "#059669" : "#e2e8f0",
+                  }}
+                  title={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                >
+                  <Star className="w-4 h-4 fill-white text-white" />
+                </button>
+              ))}
+            </div>
+            <Link
+              href="/writereview"
+              className="text-emerald-700 hover:text-emerald-800 font-bold hidden sm:inline"
+            >
+              Start →
+            </Link>
+          </div>
+
+          {/* Trustpilot-Style Stats Bar (White/Light Theme) */}
+          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-slate-200">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-colors text-center">
+              <p className="text-2xl sm:text-3xl font-black text-slate-900">2.4M+</p>
+              <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
                 Verified Reviews
               </p>
             </div>
-            <div className="p-3">
-              <p className="text-2xl sm:text-3xl font-black text-emerald-400">98,000+</p>
-              <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-colors text-center">
+              <p className="text-2xl sm:text-3xl font-black text-emerald-700">98,000+</p>
+              <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
                 Registered Businesses
               </p>
             </div>
-            <div className="p-3">
-              <p className="text-2xl sm:text-3xl font-black text-white">99.8%</p>
-              <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-colors text-center">
+              <p className="text-2xl sm:text-3xl font-black text-slate-900">99.8%</p>
+              <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
                 Spam Shield Rate
               </p>
             </div>
-            <div className="p-3">
-              <p className="text-2xl sm:text-3xl font-black text-amber-400">4.8 / 5</p>
-              <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-colors text-center">
+              <p className="text-2xl sm:text-3xl font-black text-amber-500">4.8 / 5</p>
+              <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
                 Trust Integrity Score
               </p>
             </div>
           </div>
 
-          {/* Demo Data Disclaimer Badge */}
+          {/* Demo Data Disclaimer Badge with Warning Sign (PRESERVED) */}
           <div className="mt-8 flex items-center justify-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-950/40 px-3.5 py-1.5 text-xs text-amber-300 backdrop-blur">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-4 py-1.5 text-xs text-amber-900 shadow-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
                 <strong>Warning / Demo Data:</strong> Platform statistics shown above are mock preview values.
               </span>
@@ -309,13 +438,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. RECENT VERIFIED REVIEWS SHOWCASE */}
+      {/* 3. RECENT VERIFIED REVIEWS SHOWCASE (Connected to Live Database) */}
       <section className="py-16 sm:py-20 bg-white border-y border-slate-200">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10">
             <div>
               <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs uppercase tracking-widest">
-                <Sparkles className="w-3.5 h-3.5" />
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
                 <span>Live Feed</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 mt-1">
@@ -331,7 +463,29 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Sample Data Warning Alert Banner */}
+          {/* Admin Management Bar (Visible to Platform Admin) */}
+          {user?.role === "ADMIN" && (
+            <div className="mb-6 p-4 rounded-xl bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-slate-800 shadow-md">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-purple-400 animate-pulse"></span>
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-300">
+                  Admin Active:
+                </span>
+                <span className="text-xs text-slate-300">
+                  You have administrative control over all public reviews and business curation.
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link href="/admin/reviews">
+                  <Button variant="emerald" size="sm" className="font-bold text-xs">
+                    Admin Review Console
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Sample Data Warning Alert Banner with Warning Sign */}
           <div className="mb-8 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 flex items-start gap-3 shadow-xs">
             <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
@@ -344,66 +498,174 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {recentReviews.map((rev) => (
-              <Card
-                key={rev.id}
-                className="flex flex-col justify-between border-slate-200/90 shadow-sm hover:shadow-md transition-shadow"
+          {/* Business Spotlight / Filter Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none border-b border-slate-100">
+            <span className="text-xs font-bold text-slate-500 shrink-0 mr-1">
+              Filter by Business:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCompanyFilter("all")}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${selectedCompanyFilter === "all"
+                  ? "bg-slate-900 text-white shadow-xs"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+            >
+              All Businesses
+            </button>
+            {availableCompanies.map((comp) => (
+              <button
+                key={comp.slug}
+                type="button"
+                onClick={() => setSelectedCompanyFilter(comp.slug)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${selectedCompanyFilter === comp.slug
+                    ? "bg-emerald-600 text-white font-bold shadow-xs"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
               >
-                <div>
-                  {/* Company & Rating Header */}
-                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/companies/${rev.companySlug}`}
-                        className="font-bold text-slate-900 hover:text-emerald-600 transition-colors flex items-center gap-1.5"
-                      >
-                        <Building2 className="w-4 h-4 text-slate-400" />
-                        {rev.companyName}
-                      </Link>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
-                        Demo Data
-                      </span>
-                    </div>
-                    <StarRating rating={rev.rating} size="sm" />
-                  </div>
-
-                  <h4 className="text-sm font-bold text-slate-900 line-clamp-1">
-                    "{rev.title}"
-                  </h4>
-
-                  <p className="mt-2 text-xs text-slate-600 leading-relaxed line-clamp-3">
-                    {rev.content}
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-semibold text-slate-900">{rev.author}</p>
-                    <Badge variant="verified" size="sm" className="mt-0.5">
-                      {rev.authorRole}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-slate-600">
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp className="w-3.5 h-3.5" />
-                      {rev.helpfulCount}
-                    </span>
-                    {rev.hasCompanyResponse && (
-                      <span
-                        className="flex items-center gap-1 text-emerald-700 font-medium"
-                        title="Company replied to this review"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        Replied
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Card>
+                <Building2 className="w-3.5 h-3.5" />
+                {comp.name}
+              </button>
             ))}
           </div>
+
+          {loadingReviews ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="p-6 space-y-4 animate-pulse border-slate-200">
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                    <div className="h-5 w-36 bg-slate-200 rounded"></div>
+                    <div className="h-4 w-20 bg-slate-200 rounded"></div>
+                  </div>
+                  <div className="h-4 w-3/4 bg-slate-200 rounded"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 w-full bg-slate-200 rounded"></div>
+                    <div className="h-3 w-5/6 bg-slate-200 rounded"></div>
+                    <div className="h-3 w-2/3 bg-slate-200 rounded"></div>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <div className="h-4 w-24 bg-slate-200 rounded"></div>
+                    <div className="h-4 w-12 bg-slate-200 rounded"></div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : recentReviews.length === 0 ? (
+            <div className="text-center py-12 px-4 rounded-2xl bg-slate-50 border border-dashed border-slate-300">
+              <Building2 className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-900">No reviews published yet</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Be the first customer to share your experience with a registered company.
+              </p>
+              <Link href="/writereview" className="inline-block mt-4">
+                <Button variant="emerald" size="sm">
+                  Write a Review
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {recentReviews.map((rev) => {
+                const companyName = rev.company?.name || "Verified Company";
+                const companySlug = rev.company?.slug || "";
+                const authorName = rev.user
+                  ? `${rev.user.firstName || ""} ${rev.user.lastName || ""}`.trim() || "Verified Reviewer"
+                  : "Verified Reviewer";
+                const isVerified = rev.verificationStatus === "VERIFIED";
+
+                return (
+                  <Card
+                    key={rev.id}
+                    className="flex flex-col justify-between border-slate-200/90 shadow-sm hover:shadow-md transition-shadow group"
+                  >
+                    <div>
+                      {/* Company & Rating Header */}
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/companies/${companySlug}`}
+                            className="font-bold text-slate-900 hover:text-emerald-600 transition-colors flex items-center gap-1.5 line-clamp-1"
+                          >
+                            <Building2 className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
+                            <span className="truncate">{companyName}</span>
+                          </Link>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                            Demo Data
+                          </span>
+                        </div>
+                        <div className="shrink-0 ml-2">
+                          <StarRating rating={rev.rating} size="sm" />
+                        </div>
+                      </div>
+
+                      <h4 className="text-sm font-bold text-slate-900 line-clamp-1">
+                        {rev.title}
+                      </h4>
+
+                      <p className="mt-2 text-xs text-slate-600 leading-relaxed line-clamp-3">
+                        {rev.content}
+                      </p>
+
+                      {/* Official Company Response Preview if present */}
+                      {rev.response && (
+                        <div className="mt-3 p-2.5 rounded-lg bg-emerald-50/70 border border-emerald-100/80 text-[11px] text-emerald-950">
+                          <div className="flex items-center gap-1 font-semibold text-emerald-800 mb-1">
+                            <MessageSquare className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>Official Response from {companyName}</span>
+                          </div>
+                          <p className="text-emerald-900/85 line-clamp-2 italic">
+                            &ldquo;{rev.response.content}&rdquo;
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <div>
+                        <p className="font-semibold text-slate-900">{authorName}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Badge variant={isVerified ? "verified" : "secondary"} size="sm">
+                            {isVerified ? "Verified Buyer" : "Customer"}
+                          </Badge>
+                          <span className="text-[11px] text-slate-400">
+                            • {formatTimeAgo(rev.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 text-slate-600">
+                        <button
+                          type="button"
+                          onClick={(e) => handleHelpfulVote(e, rev.id)}
+                          disabled={votedReviews[rev.id] || votingId === rev.id}
+                          className={`flex items-center gap-1 transition-colors cursor-pointer ${votedReviews[rev.id]
+                              ? "text-emerald-600 font-bold"
+                              : "hover:text-emerald-600"
+                            }`}
+                          title="Mark this review as helpful"
+                        >
+                          <ThumbsUp
+                            className={`w-3.5 h-3.5 ${votedReviews[rev.id] ? "fill-emerald-600 text-emerald-600" : ""
+                              }`}
+                          />
+                          <span>{rev.helpfulCount || 0}</span>
+                        </button>
+                        {rev.response && (
+                          <span
+                            className="flex items-center gap-1 text-emerald-700 font-medium"
+                            title="Company replied to this review"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            Replied
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

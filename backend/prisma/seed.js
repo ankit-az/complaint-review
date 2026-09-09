@@ -186,11 +186,11 @@ async function main() {
     },
   });
 
-  const demoUser = await prisma.user.upsert({
-    where: { email: "demo@complaint-review.com" },
+  const marcusUser = await prisma.user.upsert({
+    where: { email: "marcus.vance@example.com" },
     update: {},
     create: {
-      email: "demo@complaint-review.com",
+      email: "marcus.vance@example.com",
       passwordHash,
       firstName: "Marcus",
       lastName: "Vance",
@@ -198,26 +198,76 @@ async function main() {
       isVerified: true,
     },
   });
+
+  const elenaUser = await prisma.user.upsert({
+    where: { email: "elena.rostova@example.com" },
+    update: {},
+    create: {
+      email: "elena.rostova@example.com",
+      passwordHash,
+      firstName: "Elena",
+      lastName: "Rostova",
+      role: "USER",
+      isVerified: true,
+    },
+  });
+
+  const davidUser = await prisma.user.upsert({
+    where: { email: "david.chen@example.com" },
+    update: {},
+    create: {
+      email: "david.chen@example.com",
+      passwordHash,
+      firstName: "David",
+      lastName: "Chen",
+      role: "USER",
+      isVerified: true,
+    },
+  });
+
+  const sophiaUser = await prisma.user.upsert({
+    where: { email: "sophia.mansoor@example.com" },
+    update: {},
+    create: {
+      email: "sophia.mansoor@example.com",
+      passwordHash,
+      firstName: "Sophia",
+      lastName: "Al-Mansoor",
+      role: "USER",
+      isVerified: true,
+    },
+  });
+
+  const cloudScaleRep = await prisma.user.upsert({
+    where: { email: "rep@cloudscale.example" },
+    update: {},
+    create: {
+      email: "rep@cloudscale.example",
+      passwordHash,
+      firstName: "CloudScale",
+      lastName: "Support",
+      role: "BUSINESS",
+      isVerified: true,
+    },
+  });
+
+  const finovaRep = await prisma.user.upsert({
+    where: { email: "rep@finova.example" },
+    update: {},
+    create: {
+      email: "rep@finova.example",
+      passwordHash,
+      firstName: "Finova",
+      lastName: "Operations",
+      role: "BUSINESS",
+      isVerified: true,
+    },
+  });
+
   console.log("✅ Seeded demo users.");
 
   // 3. Create Sample Companies
   const companies = [
-    {
-      name: "Stripe",
-      slug: "stripe",
-      description: "Financial infrastructure and payment processing for the internet.",
-      websiteUrl: "https://stripe.com",
-      categoryId: createdCategories["banking-finance"]?.id,
-      isClaimed: true,
-      isVerified: true,
-      overallRating: 4.8,
-      reviewCount: 24,
-      star5Count: 20,
-      star4Count: 3,
-      star3Count: 1,
-      star2Count: 0,
-      star1Count: 0,
-    },
     {
       name: "CloudScale Hosting",
       slug: "cloudscale-hosting",
@@ -226,11 +276,11 @@ async function main() {
       categoryId: createdCategories["technology"]?.id,
       isClaimed: true,
       isVerified: true,
-      overallRating: 4.7,
-      reviewCount: 18,
-      star5Count: 14,
-      star4Count: 3,
-      star3Count: 1,
+      overallRating: 4.9,
+      reviewCount: 42,
+      star5Count: 38,
+      star4Count: 4,
+      star3Count: 0,
       star2Count: 0,
       star1Count: 0,
     },
@@ -240,47 +290,191 @@ async function main() {
       description: "Border-free digital business accounts and transparent currency exchanges.",
       websiteUrl: "https://finova.example",
       categoryId: createdCategories["banking-finance"]?.id,
-      isClaimed: false,
-      isVerified: false,
-      overallRating: 4.2,
-      reviewCount: 9,
-      star5Count: 5,
-      star4Count: 3,
-      star3Count: 0,
+      isClaimed: true,
+      isVerified: true,
+      overallRating: 4.4,
+      reviewCount: 28,
+      star5Count: 18,
+      star4Count: 8,
+      star3Count: 1,
       star2Count: 1,
+      star1Count: 0,
+    },
+    {
+      name: "Apex Logistics & Freight",
+      slug: "apex-logistics",
+      description: "Global freight forwarding, time-critical logistics, temperature-controlled transport, and end-to-end supply chain telemetry.",
+      websiteUrl: "https://apexlogistics.example",
+      categoryId: createdCategories["logistics-shipping"]?.id || createdCategories["services"]?.id,
+      isClaimed: true,
+      isVerified: true,
+      overallRating: 4.8,
+      reviewCount: 35,
+      star5Count: 30,
+      star4Count: 4,
+      star3Count: 1,
+      star2Count: 0,
+      star1Count: 0,
+    },
+    {
+      name: "Stripe",
+      slug: "stripe",
+      description: "Financial infrastructure and payment processing for the internet.",
+      websiteUrl: "https://stripe.com",
+      categoryId: createdCategories["banking-finance"]?.id,
+      isClaimed: true,
+      isVerified: true,
+      overallRating: 4.8,
+      reviewCount: 64,
+      star5Count: 55,
+      star4Count: 7,
+      star3Count: 2,
+      star2Count: 0,
       star1Count: 0,
     },
   ];
 
+  const seededCompanies = {};
   for (const comp of companies) {
     const companyRecord = await prisma.company.upsert({
       where: { slug: comp.slug },
       update: comp,
       create: comp,
     });
+    seededCompanies[comp.slug] = companyRecord;
+  }
 
-    // Create a sample review for this company
-    const existingReview = await prisma.review.findFirst({
-      where: { companyId: companyRecord.id, userId: demoUser.id },
+  const liamUser = await prisma.user.upsert({
+    where: { email: "liam.foster@example.com" },
+    update: {},
+    create: {
+      email: "liam.foster@example.com",
+      passwordHash,
+      firstName: "Liam",
+      lastName: "Foster",
+      role: "USER",
+      isVerified: true,
+    },
+  });
+
+  const chloeUser = await prisma.user.upsert({
+    where: { email: "chloe.bennett@example.com" },
+    update: {},
+    create: {
+      email: "chloe.bennett@example.com",
+      passwordHash,
+      firstName: "Chloe",
+      lastName: "Bennett",
+      role: "USER",
+      isVerified: true,
+    },
+  });
+
+  // 4. Seed Verified Reviews & Company Responses
+  const reviewsData = [
+    {
+      companySlug: "cloudscale-hosting",
+      user: marcusUser,
+      rating: 5,
+      title: "Phenomenal zero-downtime migration and rapid support",
+      content: "Migrated over 40 client websites with zero hiccups. When we needed help with custom SSL certificates, their support engineer answered within 4 minutes on live chat.",
+      helpfulCount: 18,
+      response: {
+        responder: cloudScaleRep,
+        content: "Thank you Marcus! We take great pride in our 24/7 technical engineering team and automated zero-downtime migration pipelines. We are excited to support your continued growth.",
+      },
+    },
+    {
+      companySlug: "finova-banking",
+      user: elenaUser,
+      rating: 4,
+      title: "Clean mobile UI, fast international wire transfers",
+      content: "Been using Finova for business cross-border payments. The exchange rates are transparent with no hidden margins. Account verification took less than 24 hours.",
+      helpfulCount: 9,
+      response: {
+        responder: finovaRep,
+        content: "Thank you Elena for the insightful feedback! We've just expanded our direct SEPA and SWIFT corridors to bring settlement speeds down to under an hour.",
+      },
+    },
+    {
+      companySlug: "apex-logistics",
+      user: davidUser,
+      rating: 5,
+      title: "Delivered sensitive freight across country on time",
+      content: "Real-time GPS telemetry and proactive dispatchers kept us updated at every checkpoint. No damages and arrived 3 hours ahead of scheduled delivery window.",
+      helpfulCount: 14,
+      response: null,
+    },
+    {
+      companySlug: "stripe",
+      user: sophiaUser,
+      rating: 5,
+      title: "Developer-first payments API that just works at scale",
+      content: "Integrated Stripe Checkout and recurring subscription billing in under two days. The webhook reliability and automated sales tax calculation saved our engineering team months of custom work.",
+      helpfulCount: 27,
+      response: null,
+    },
+    {
+      companySlug: "cloudscale-hosting",
+      user: liamUser,
+      rating: 5,
+      title: "Rock-solid 99.99% infrastructure uptime for SaaS workloads",
+      content: "We have been hosting our multi-tenant SaaS application on CloudScale for 14 months. Dedicated VPC networking, auto-scaling, and NVMe block storage have exceeded all performance benchmarks.",
+      helpfulCount: 21,
+      response: null,
+    },
+    {
+      companySlug: "stripe",
+      user: chloeUser,
+      rating: 5,
+      title: "Effortless global currency conversions and fraud prevention",
+      content: "Stripe Radar intercepted several suspicious card testing attempts before they caused chargebacks. The automated currency conversions allow us to bill international clients seamlessly.",
+      helpfulCount: 16,
+      response: null,
+    },
+  ];
+
+  for (const r of reviewsData) {
+    const company = seededCompanies[r.companySlug];
+    if (!company) continue;
+
+    // Check if review with this title & company already exists
+    let review = await prisma.review.findFirst({
+      where: { companyId: company.id, userId: r.user.id, title: r.title },
     });
 
-    if (!existingReview) {
-      await prisma.review.create({
+    if (!review) {
+      review = await prisma.review.create({
         data: {
-          companyId: companyRecord.id,
-          userId: demoUser.id,
-          rating: 5,
-          title: `Exceptional service from ${companyRecord.name}`,
-          content: `We have been using ${companyRecord.name} for our production workloads. The support team responds in minutes and reliability has been 100%. Highly recommended!`,
+          companyId: company.id,
+          userId: r.user.id,
+          rating: r.rating,
+          title: r.title,
+          content: r.content,
           status: "PUBLISHED",
           verificationStatus: "VERIFIED",
-          helpfulCount: 12,
+          helpfulCount: r.helpfulCount,
         },
       });
     }
+
+    if (r.response) {
+      const existingResp = await prisma.companyResponse.findUnique({
+        where: { reviewId: review.id },
+      });
+      if (!existingResp) {
+        await prisma.companyResponse.create({
+          data: {
+            reviewId: review.id,
+            responderId: r.response.responder.id,
+            content: r.response.content,
+          },
+        });
+      }
+    }
   }
 
-  console.log("✅ Seeded sample companies and reviews.");
+  console.log("✅ Seeded sample companies, authentic reviews, and company responses.");
 }
 
 main()

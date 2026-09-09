@@ -1,12 +1,15 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware.js";
-import { sendSuccess } from "../utils/response.js";
+import { validate } from "../middleware/validate.js";
+import { registerSchema, loginSchema } from "../validators/auth.validator.js";
+import { register, login, refresh, logout, getMe } from "../controllers/auth.controller.js";
 
 const router = Router();
 
-// Foundation auth routes (Expanded fully in Phase 2)
-router.get("/me", authenticate, (req, res) => {
-  return sendSuccess(res, { user: req.user }, "Current user retrieved");
-});
+router.post("/register", validate(registerSchema), register);
+router.post("/login", validate(loginSchema), login);
+router.post("/refresh", refresh);
+router.post("/logout", logout);
+router.get("/me", authenticate, getMe);
 
 export default router;

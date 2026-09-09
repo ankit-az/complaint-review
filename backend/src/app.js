@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 
 import apiV1Router from "./routes/index.js";
+import businessRoutes from "./routes/business.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { AppError } from "./utils/AppError.js";
 
@@ -61,8 +62,9 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser(process.env.COOKIE_SECRET || "default_cookie_secret"));
 
-// 5. Mount API v1 Routes
+// 5. Mount API Routes
 app.use("/api/v1", apiV1Router);
+app.use("/api/business", businessRoutes);
 
 // 6. Base Root Route
 app.get("/", (req, res) => {

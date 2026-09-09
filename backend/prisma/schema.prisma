@@ -110,6 +110,12 @@ model Company {
   isVerified     Boolean   @default(false)
   isSuspended    Boolean   @default(false)
 
+  coverImageUrl        String?
+  socialLinks          Json?
+  businessHours        Json?
+  verificationStatus   String            @default("PENDING")
+  verificationDetails  Json?
+
   // Cached aggregate stats for O(1) reads
   overallRating  Float     @default(0.0)
   reviewCount    Int       @default(0)
@@ -124,6 +130,11 @@ model Company {
 
   reviews          Review[]
   businessProfiles BusinessProfile[]
+  locations        BusinessLocation[]
+  products         BusinessProduct[]
+  invitations      ReviewInvitation[]
+  notifications    BusinessNotification[]
+  widgetConfigs    WidgetConfig[]
 
   @@index([slug])
   @@index([categoryId])
@@ -212,3 +223,88 @@ model Report {
   @@index([reporterId])
   @@index([status])
 }
+
+model BusinessLocation {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  address     String
+  city        String?
+  state       String?
+  country     String?
+  postalCode  String?
+  phone       String?
+  email       String?
+  isPrimary   Boolean  @default(false)
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model BusinessProduct {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Float?
+  currency    String   @default("USD")
+  imageUrl    String?
+  category    String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model ReviewInvitation {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customerName  String?
+  customerEmail String
+  inviteToken   String    @unique
+  status        String    @default("PENDING")
+  sentAt        DateTime?
+  openedAt      DateTime?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([inviteToken])
+  @@index([status])
+}
+
+model BusinessNotification {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String?
+  type      String   // NEW_REVIEW, REVIEW_FLAGGED, INVITATION_COMPLETED, VERIFICATION_UPDATE, SYSTEM
+  title     String
+  message   String
+  metadata  Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([companyId, isRead])
+}
+
+model WidgetConfig {
+  id         String   @id @default(uuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  widgetType String   @default("badge")
+  theme      String   @default("light")
+  settings   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([companyId])
+}
+
