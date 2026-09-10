@@ -67,29 +67,36 @@ const iconMap = {
 };
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState(() => getAllCategories());
+  const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     async function load() {
       try {
+        setLoading(true);
         const res = await api.get("/categories");
-        if (res?.success && res.data?.categories) {
+        if (isMounted && res?.success && Array.isArray(res.data?.categories)) {
           const list = res.data.categories.map((c) => ({
             ...c,
             companyCount: typeof c.companyCount === "number" ? c.companyCount : 0,
           }));
           setCategories(list);
+        } else if (isMounted) {
+          setCategories(getAllCategories());
         }
       } catch (err) {
-        console.warn("Backend API unavailable, using built-in categories data:", err.message);
-        setCategories(getAllCategories());
+        console.warn("Backend API unavailable, using fallback categories data:", err.message);
+        if (isMounted) setCategories(getAllCategories());
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
     load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredCategories = categories.filter((cat) => {

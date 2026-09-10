@@ -22,6 +22,14 @@ import {
   Sparkles,
   RefreshCw,
   AlertTriangle,
+  Car,
+  Utensils,
+  GraduationCap,
+  Home,
+  Truck,
+  Scale,
+  Dumbbell,
+  FolderOpen,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -30,10 +38,46 @@ import Badge from "@/components/ui/Badge";
 import api from "@/lib/api";
 import { useAuth } from "@/store/AuthContext";
 
+const categoryIconMap = {
+  Laptop,
+  CreditCard,
+  ShoppingBag,
+  ShieldCheck,
+  Plane,
+  HeartPulse,
+  Wrench,
+  Car,
+  Utensils,
+  GraduationCap,
+  Home,
+  Truck,
+  Scale,
+  Dumbbell,
+  Building2,
+  FolderOpen,
+};
+
+const categoryStyles = {
+  technology: { bg: "bg-blue-50 text-blue-600 border-blue-100" },
+  "banking-finance": { bg: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+  "e-commerce": { bg: "bg-purple-50 text-purple-600 border-purple-100" },
+  "logistics-shipping": { bg: "bg-amber-50 text-amber-600 border-amber-100" },
+  "travel-hospitality": { bg: "bg-teal-50 text-teal-600 border-teal-100" },
+  healthcare: { bg: "bg-rose-50 text-rose-600 border-rose-100" },
+  "automotive-vehicles": { bg: "bg-orange-50 text-orange-600 border-orange-100" },
+  "food-beverages": { bg: "bg-yellow-50 text-yellow-600 border-yellow-100" },
+  "education-training": { bg: "bg-indigo-50 text-indigo-600 border-indigo-100" },
+  "real-estate": { bg: "bg-sky-50 text-sky-600 border-sky-100" },
+};
+
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [hoverRating, setHoverRating] = useState(0);
+
+  // Dynamic Categories from Backend
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -42,57 +86,34 @@ export default function HomePage() {
     }
   };
 
-  // Featured Categories Data
-  const categories = [
-    {
-      name: "Software & Technology",
-      slug: "technology",
-      icon: Laptop,
-      companiesCount: "1,420+",
-      avgRating: 4.6,
-      bg: "bg-blue-50 text-blue-600 border-blue-100",
-    },
-    {
-      name: "Banking & Financial Services",
-      slug: "banking-finance",
-      icon: CreditCard,
-      companiesCount: "890+",
-      avgRating: 4.3,
-      bg: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    },
-    {
-      name: "E-Commerce & Retail",
-      slug: "e-commerce",
-      icon: ShoppingBag,
-      companiesCount: "3,250+",
-      avgRating: 4.5,
-      bg: "bg-purple-50 text-purple-600 border-purple-100",
-    },
-    {
-      name: "Travel & Hospitality",
-      slug: "travel-hospitality",
-      icon: Plane,
-      companiesCount: "1,120+",
-      avgRating: 4.2,
-      bg: "bg-amber-50 text-amber-600 border-amber-100",
-    },
-    {
-      name: "Health & Wellness",
-      slug: "healthcare",
-      icon: HeartPulse,
-      companiesCount: "640+",
-      avgRating: 4.7,
-      bg: "bg-rose-50 text-rose-600 border-rose-100",
-    },
-    {
-      name: "Home & Professional Services",
-      slug: "services",
-      icon: Wrench,
-      companiesCount: "2,100+",
-      avgRating: 4.4,
-      bg: "bg-indigo-50 text-indigo-600 border-indigo-100",
-    },
-  ];
+  // Fetch Live Categories from Backend API
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchCategories() {
+      try {
+        setLoadingCategories(true);
+        const res = await api.get("/categories");
+        if (isMounted && res?.success && Array.isArray(res.data?.categories)) {
+          // Sort categories: categories with registered companies first, then alphabetical
+          const sorted = [...res.data.categories].sort((a, b) => {
+            const countA = typeof a.companyCount === "number" ? a.companyCount : 0;
+            const countB = typeof b.companyCount === "number" ? b.companyCount : 0;
+            if (countB !== countA) return countB - countA;
+            return a.name.localeCompare(b.name);
+          });
+          setCategories(sorted.slice(0, 6));
+        }
+      } catch (err) {
+        console.error("Failed to load categories from backend:", err);
+      } finally {
+        if (isMounted) setLoadingCategories(false);
+      }
+    }
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Live Backend Reviews State & Business Filter
   const { user } = useAuth();
@@ -376,14 +397,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. CATEGORY DISCOVERY SECTION */}
+      {/* 2. CATEGORY DISCOVERY SECTION (Connected to Live Database) */}
       <section className="py-16 sm:py-20 bg-slate-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
-                Industry Directory
-              </p>
+              <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase tracking-widest">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Live Industry Directory</span>
+              </div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 mt-1">
                 Explore Companies by Category
               </h2>
@@ -397,44 +422,88 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((cat) => {
-              const IconComponent = cat.icon;
-              return (
-                <Link
-                  key={cat.slug}
-                  href={`/categories/${cat.slug}`}
-                  className="group block"
+          {loadingCategories ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="h-44 rounded-2xl bg-white border border-slate-200/80 p-6 animate-pulse flex flex-col justify-between"
                 >
-                  <Card
-                    hover
-                    className="h-full border-slate-200/80 group-hover:border-emerald-500/40 transition-all duration-200"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-xl border ${cat.bg} transition-transform duration-200 group-hover:scale-105`}
-                      >
-                        <IconComponent className="h-6 w-6" />
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded-md">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                        <span>{cat.avgRating}</span>
-                      </div>
-                    </div>
+                  <div className="flex items-start justify-between">
+                    <div className="w-12 h-12 rounded-xl bg-slate-200" />
+                    <div className="w-16 h-6 rounded-md bg-slate-200" />
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <div className="w-3/4 h-5 rounded bg-slate-200" />
+                    <div className="w-1/2 h-4 rounded bg-slate-200" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-slate-200">
+              <FolderOpen className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-700">No categories currently found</p>
+              <p className="text-xs text-slate-500 mt-1">Categories are syncing with the database.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map((cat) => {
+                const IconComponent = categoryIconMap[cat.iconName] || Building2;
+                const style = categoryStyles[cat.slug] || {
+                  bg: "bg-emerald-50 text-emerald-600 border-emerald-100",
+                };
+                const count =
+                  typeof cat.companyCount === "number"
+                    ? cat.companyCount
+                    : cat._count?.companies || 0;
 
-                    <div className="mt-5">
-                      <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                        {cat.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {cat.companiesCount} companies listed
-                      </p>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
+                return (
+                  <Link
+                    key={cat.slug || cat.id}
+                    href={`/categories/${cat.slug}`}
+                    className="group block"
+                  >
+                    <Card
+                      hover
+                      className="h-full border-slate-200/80 group-hover:border-emerald-500/40 transition-all duration-200 p-6 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between">
+                          <div
+                            className={`flex h-12 w-12 items-center justify-center rounded-xl border ${style.bg} transition-transform duration-200 group-hover:scale-105`}
+                          >
+                            <IconComponent className="h-6 w-6" />
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
+                            <span className="text-emerald-700 font-extrabold">{count}</span>
+                            <span className="text-slate-500 font-medium">
+                              {count === 1 ? "company" : "companies"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-5">
+                          <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                            {cat.name}
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                            {cat.description ||
+                              "Browse verified company profiles, ratings, and customer reviews."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-emerald-600 font-semibold group-hover:text-emerald-700">
+                        <span>Explore Directory</span>
+                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

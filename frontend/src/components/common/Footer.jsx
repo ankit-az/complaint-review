@@ -14,9 +14,9 @@ export function Footer() {
   }
 
   return (
-    <footer className="border-t border-slate-200 bg-slate-900 text-slate-300">
+    <footer className="border-t border-slate-800 bg-slate-950 text-slate-300">
       {/* Trust Commitment Strip */}
-      <div className="border-b border-slate-800 bg-slate-950/60 py-4 px-4 sm:px-6 lg:px-8">
+      <div className="border-b border-slate-800/80 bg-slate-900/50 py-4 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2 text-emerald-400 font-semibold">
             <CheckCircle2 className="w-4 h-4" />
@@ -41,7 +41,7 @@ export function Footer() {
           {/* Col 1: Brand, Mission & Social Links */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 text-emerald-400 border border-slate-700">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-emerald-400 border border-slate-800">
                 <Shield className="h-5 w-5 fill-emerald-500/20 stroke-emerald-400 stroke-[2.2]" />
               </div>
               <span className="text-xl font-black tracking-tight text-white">

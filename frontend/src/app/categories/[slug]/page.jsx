@@ -77,25 +77,24 @@ export default function CategoryDetailPage() {
   const params = useParams();
   const slug = params?.slug;
 
-  const [category, setCategory] = useState(() => (slug ? getCategoryBySlug(slug) : null));
-  const [companies, setCompanies] = useState(() => {
-    const fallback = slug ? getCategoryBySlug(slug) : null;
-    return fallback?.companies || [];
-  });
+  const [category, setCategory] = useState(null);
+  const [companies, setCompanies] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!slug) return;
+    let isMounted = true;
     const fetchCategory = async () => {
       try {
+        setLoading(true);
         const res = await api.get(`/categories/${slug}`);
-        if (res?.success && res.data?.category) {
+        if (isMounted && res?.success && res.data?.category) {
           setCategory(res.data.category);
           setCompanies(res.data.category.companies || []);
           setError(null);
-        } else {
+        } else if (isMounted) {
           const fallback = getCategoryBySlug(slug);
           if (fallback) {
             setCategory(fallback);
@@ -106,20 +105,26 @@ export default function CategoryDetailPage() {
           }
         }
       } catch (err) {
-        // Fall back gracefully to internal dataset for live Vercel
-        const fallback = getCategoryBySlug(slug);
-        if (fallback) {
-          setCategory(fallback);
-          setCompanies(fallback.companies || []);
-          setError(null);
-        } else {
-          setError(err.message || "Failed to load category details");
+        if (isMounted) {
+          const fallback = getCategoryBySlug(slug);
+          if (fallback) {
+            setCategory(fallback);
+            setCompanies(fallback.companies || []);
+            setError(null);
+          } else {
+            setError(err.message || "Failed to load category details");
+          }
         }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     fetchCategory();
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
 
   if (loading) {

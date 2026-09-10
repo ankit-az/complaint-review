@@ -1,5 +1,18 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+const getApiBaseUrl = () => {
+  // If explicitly configured via environment variable
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    const raw = process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/$/, "");
+    return raw.endsWith("/api/v1") ? raw : `${raw}/api/v1`;
+  }
+  // Production default points to the deployed Render backend
+  if (process.env.NODE_ENV === "production") {
+    return "https://complaint-review.onrender.com/api/v1";
+  }
+  // Development default
+  return "http://localhost:5000/api/v1";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(message, statusCode, errors = []) {
