@@ -65,6 +65,55 @@ export const authenticate = asyncHandler(async (req, res, next) => {
   next();
 });
 
+export const optionalAuthenticate = asyncHandler(async (req, res, next) => {
+  let token = null;
+
+  if (req.cookies && req.cookies.accessToken) {
+    token = req.cookies.accessToken;
+  } else if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_ACCESS_SECRET || "default_jwt_secret"
+    );
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        avatarUrl: true,
+        isVerified: true,
+        isSuspended: true,
+      },
+    });
+
+    if (currentUser && !currentUser.isSuspended) {
+      req.user = currentUser;
+    } else {
+      req.user = null;
+    }
+  } catch {
+    req.user = null;
+  }
+
+  next();
+});
+
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
@@ -81,5 +130,6 @@ export const authorize = (...roles) => {
 
 export default {
   authenticate,
+  optionalAuthenticate,
   authorize,
 };
