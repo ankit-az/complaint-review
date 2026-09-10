@@ -23,25 +23,68 @@ app.use(
 );
 
 // 2. CORS Setup
-const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
-  "http://localhost:3000",
-];
+const parseOrigins = () => {
+  const defaults = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://www.complaint-review.com",
+    "https://complaint-review.com",
+  ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+  const envOrigins = (process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((url) => url.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+
+  const origins = new Set([...defaults, ...envOrigins]);
+
+  // For any domain, ensure both apex and www variants are included
+  for (const origin of Array.from(origins)) {
+    try {
+      const url = new URL(origin);
+      if (url.hostname.startsWith("www.")) {
+        origins.add(`${url.protocol}//${url.hostname.slice(4)}${url.port ? `:${url.port}` : ""}`);
+      } else if (!url.hostname.includes("localhost") && !url.hostname.includes("127.0.0.1")) {
+        origins.add(`${url.protocol}//www.${url.hostname}${url.port ? `:${url.port}` : ""}`);
+      }
+    } catch {
+      // Ignore invalid URLs
+    }
+  }
+
+  return Array.from(origins);
+};
+
+const allowedOrigins = parseOrigins();
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, or Postman)
+    if (!origin) return callback(null, true);
+
+    try {
+      const cleanOrigin = origin.replace(/\/+$/, "");
+      const hostname = new URL(origin).hostname;
+      const isAllowed =
+        allowedOrigins.includes(cleanOrigin) ||
+        hostname.endsWith(".vercel.app");
+
+      if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new AppError(`Origin ${origin} not allowed by CORS`, 403));
+        callback(null, false);
       }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  })
-);
+    } catch {
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 
 // 3. Global Rate Limiter
 const limiter = rateLimit({
