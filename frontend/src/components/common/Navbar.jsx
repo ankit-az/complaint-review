@@ -62,6 +62,12 @@ export function Navbar() {
               Explore Companies
             </Link>
             <Link
+              href="/blog"
+              className="transition-colors hover:text-emerald-400"
+            >
+              Blog
+            </Link>
+            <Link
               href="/writereview"
               className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors"
             >
@@ -207,6 +213,13 @@ export function Navbar() {
               className="px-3 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-white"
             >
               Explore Companies
+            </Link>
+            <Link
+              href="/blog"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-white"
+            >
+              Blog
             </Link>
             <Link
               href="/writereview"

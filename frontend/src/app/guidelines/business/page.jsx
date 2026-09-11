@@ -21,10 +21,6 @@ export default function BusinessGuidelinesPage() {
 
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mb-4">
-            <Building2 className="w-3.5 h-3.5" />
-            Merchant Guidelines
-          </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-3">
             Business Review Guidelines & Code of Conduct
           </h1>

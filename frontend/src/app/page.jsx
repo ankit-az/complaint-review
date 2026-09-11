@@ -228,20 +228,6 @@ export default function HomePage() {
         <div className="absolute top-1/2 -left-20 w-80 h-80 bg-teal-100/25 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center z-10">
-          {/* Trustpilot-Style Star Rating Badge Header */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-1.5 text-xs font-semibold text-emerald-800 shadow-xs mb-6">
-            <div className="flex items-center gap-0.5">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <div key={s} className="w-4 h-4 rounded-xs bg-emerald-600 flex items-center justify-center">
-                  <Star className="w-2.5 h-2.5 fill-white text-white" />
-                </div>
-              ))}
-            </div>
-            <span className="font-bold">Trust Integrity Standard</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-slate-600 font-normal">Over 2.4 Million Verified Reviews</span>
-          </div>
-
           {/* Main Trustpilot-Style Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 max-w-4xl mx-auto leading-tight">
             Read reviews. Write reviews.
@@ -742,9 +728,6 @@ export default function HomePage() {
       <section className="py-16 sm:py-24 bg-slate-900 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <Badge variant="verified" size="md" className="bg-emerald-950/80 text-emerald-400 border-emerald-500/30 mb-4">
-              Anti-Fraud Architecture
-            </Badge>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight">
               A Platform Built on Radical Consumer Transparency
             </h2>
@@ -801,9 +784,6 @@ export default function HomePage() {
       <section className="relative overflow-hidden bg-emerald-600 text-white py-16 px-4 sm:px-6 lg:px-8">
         <div className="relative mx-auto max-w-5xl flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
           <div className="space-y-3 max-w-xl">
-            <span className="inline-block px-2.5 py-1 rounded-md bg-emerald-700/60 text-xs font-bold uppercase tracking-wider">
-              For Business Owners & Brands
-            </span>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
               Turn Real Customer Feedback into Your Greatest Growth Engine.
             </h2>

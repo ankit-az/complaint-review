@@ -5,7 +5,7 @@ import { AppError } from "../utils/AppError.js";
 
 export const getCompanies = asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 30));
   const skip = (page - 1) * limit;
 
   const { q, category } = req.query;
@@ -39,7 +39,11 @@ export const getCompanies = asyncHandler(async (req, res) => {
           select: { name: true, slug: true },
         },
       },
-      orderBy: { overallRating: "desc" },
+      orderBy: [
+        { reviewCount: "desc" },
+        { overallRating: "desc" },
+        { name: "asc" },
+      ],
     }),
     prisma.company.count({ where }),
   ]);
@@ -70,7 +74,7 @@ export const getCompanyBySlug = asyncHandler(async (req, res) => {
       products: { where: { status: "ACTIVE" } },
       reviews: {
         where: { status: "PUBLISHED" },
-        take: 15,
+        take: 100,
         orderBy: { createdAt: "desc" },
         include: {
           user: {
@@ -85,6 +89,24 @@ export const getCompanyBySlug = asyncHandler(async (req, res) => {
   if (!company || company.isSuspended) {
     throw new AppError("Company not found", 404);
   }
+
+  // Ensure reviewCount and overallRating accurately match the actual published reviews
+  const publishedReviews = company.reviews || [];
+  const actualCount = publishedReviews.length;
+  const actualAvg = actualCount > 0
+    ? Number((publishedReviews.reduce((sum, r) => sum + r.rating, 0) / actualCount).toFixed(1))
+    : 0.0;
+
+  const starBreakdown = { star1Count: 0, star2Count: 0, star3Count: 0, star4Count: 0, star5Count: 0 };
+  for (const r of publishedReviews) {
+    if (r.rating >= 1 && r.rating <= 5) {
+      starBreakdown[`star${r.rating}Count`] += 1;
+    }
+  }
+
+  company.reviewCount = actualCount;
+  company.overallRating = actualAvg;
+  Object.assign(company, starBreakdown);
 
   return sendSuccess(res, { company }, "Company profile retrieved");
 });

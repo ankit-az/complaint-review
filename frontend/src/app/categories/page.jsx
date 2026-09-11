@@ -36,8 +36,6 @@ import {
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 
-import { getAllCategories } from "@/data/categoriesData";
-
 const iconMap = {
   Laptop,
   CreditCard,
@@ -84,11 +82,11 @@ export default function CategoriesPage() {
           }));
           setCategories(list);
         } else if (isMounted) {
-          setCategories(getAllCategories());
+          setCategories([]);
         }
       } catch (err) {
-        console.warn("Backend API unavailable, using fallback categories data:", err.message);
-        if (isMounted) setCategories(getAllCategories());
+        console.error("Failed to load categories from API:", err.message);
+        if (isMounted) setCategories([]);
       } finally {
         if (isMounted) setLoading(false);
       }

@@ -43,8 +43,6 @@ import Input from "@/components/ui/Input";
 import StarRating from "@/components/ui/StarRating";
 import Badge from "@/components/ui/Badge";
 
-import { getCategoryBySlug } from "@/data/categoriesData";
-
 const iconMap = {
   Laptop,
   CreditCard,
@@ -95,25 +93,11 @@ export default function CategoryDetailPage() {
           setCompanies(res.data.category.companies || []);
           setError(null);
         } else if (isMounted) {
-          const fallback = getCategoryBySlug(slug);
-          if (fallback) {
-            setCategory(fallback);
-            setCompanies(fallback.companies || []);
-            setError(null);
-          } else {
-            setError("Category not found");
-          }
+          setError("Category not found");
         }
       } catch (err) {
         if (isMounted) {
-          const fallback = getCategoryBySlug(slug);
-          if (fallback) {
-            setCategory(fallback);
-            setCompanies(fallback.companies || []);
-            setError(null);
-          } else {
-            setError(err.message || "Failed to load category details");
-          }
+          setError(err.message || "Failed to load category details");
         }
       } finally {
         if (isMounted) {

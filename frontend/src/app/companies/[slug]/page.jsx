@@ -18,6 +18,7 @@ import {
   Sparkles,
   ArrowLeft,
   Package,
+  Shield,
 } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -84,7 +85,7 @@ export default function CompanyProfilePage() {
   }
 
   const reviews = company.reviews || [];
-  const totalReviews = company.reviewCount || reviews.length;
+  const totalReviews = reviews.length;
 
   return (
     <div className="bg-slate-50 min-h-screen pb-16">
@@ -93,12 +94,23 @@ export default function CompanyProfilePage() {
         <div className="mx-auto max-w-7xl px-4 pt-6 pb-8 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-start gap-4">
-              <div className="h-20 w-20 rounded-2xl bg-slate-900 text-white font-black text-2xl flex items-center justify-center shrink-0 shadow-sm border border-slate-800">
+              <div className="h-20 w-20 rounded-2xl bg-white text-slate-900 font-black text-2xl flex items-center justify-center shrink-0 shadow-sm border border-slate-200 overflow-hidden p-2">
                 {company.logoUrl ? (
-                  <img src={company.logoUrl} alt={company.name} className="h-full w-full object-cover rounded-2xl" />
-                ) : (
-                  company.name ? company.name[0].toUpperCase() : "C"
-                )}
+                  <img
+                    src={company.logoUrl}
+                    alt={company.name}
+                    className="h-full w-full object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      if (e.currentTarget.nextElementSibling) {
+                        e.currentTarget.nextElementSibling.classList.remove("hidden");
+                      }
+                    }}
+                  />
+                ) : null}
+                <span className={`text-slate-800 text-2xl font-black ${company.logoUrl ? "hidden" : ""}`}>
+                  {company.name ? company.name[0].toUpperCase() : "C"}
+                </span>
               </div>
 
               <div className="space-y-1">
@@ -106,11 +118,15 @@ export default function CompanyProfilePage() {
                   <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                     {company.name}
                   </h1>
-                  {company.isVerified && (
+                  {company.isVerified ? (
                     <Badge variant="verified" size="md">
                       Verified Business
                     </Badge>
-                  )}
+                  ) : !company.isClaimed ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                      <Building2 className="w-3.5 h-3.5 text-amber-600" /> Unclaimed Profile
+                    </span>
+                  ) : null}
                 </div>
 
                 <p className="text-xs text-slate-500">
@@ -129,7 +145,14 @@ export default function CompanyProfilePage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Link href="/writereview">
+              {!company.isClaimed && (
+                <Link href={`/business/claim?company=${company.slug}`}>
+                  <Button variant="outline" size="md" className="font-bold border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 gap-1.5 shadow-sm">
+                    <Shield className="w-4 h-4 text-amber-600" /> Claim Profile
+                  </Button>
+                </Link>
+              )}
+              <Link href={`/writereview?company=${company.slug}`}>
                 <Button variant="emerald" size="md" className="font-bold gap-2 shadow-sm">
                   <Sparkles className="w-4 h-4 text-amber-300" /> Write a Review
                 </Button>
@@ -148,6 +171,32 @@ export default function CompanyProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Unclaimed Profile Prominent Notice Banner */}
+      {!company.isClaimed && (
+        <div className="bg-amber-50/80 border-b border-amber-200 py-3.5">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 shrink-0">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-xs sm:text-sm font-bold text-slate-900">
+                  Is this your company? Take ownership of this profile
+                </h2>
+                <p className="text-[11px] sm:text-xs text-slate-600">
+                  Anyone authorized by {company.name} can claim this profile for free to reply to customer reviews, upload official brand assets, and manage company details.
+                </p>
+              </div>
+            </div>
+            <Link href={`/business/claim?company=${company.slug}`} className="shrink-0 w-full sm:w-auto">
+              <Button size="sm" className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-sm">
+                <Shield className="w-3.5 h-3.5" /> Claim this profile free →
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -177,7 +226,7 @@ export default function CompanyProfilePage() {
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
                   Have you interacted with this company? Share your experience to help other buyers.
                 </p>
-                <Link href="/writereview" className="inline-block pt-1">
+                <Link href={`/writereview?company=${company.slug}`} className="inline-block pt-1">
                   <Button variant="emerald" size="sm" className="font-bold">
                     Be the First Reviewer
                   </Button>
@@ -315,14 +364,19 @@ export default function CompanyProfilePage() {
 
           {/* Is this your company? Banner */}
           {!company.isClaimed && (
-            <Card className="p-5 border-amber-200 bg-amber-50/70 text-slate-900 space-y-2">
-              <h4 className="text-xs font-bold text-amber-900">Do you manage this company?</h4>
-              <p className="text-[11px] text-amber-800 leading-relaxed">
-                Claim this business profile to respond directly to customer reviews, upload logos, and customize widgets.
+            <Card className="p-5 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/40 text-slate-900 space-y-3 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-amber-100 text-amber-700 rounded-lg">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <h4 className="text-xs font-bold text-amber-950">Do you manage {company.name}?</h4>
+              </div>
+              <p className="text-[11px] text-amber-900/80 leading-relaxed">
+                Claim this business profile to respond directly to customer reviews, upload official logos, and manage your brand reputation.
               </p>
-              <Link href="/business/claim" className="inline-block pt-1">
-                <Button size="sm" variant="emerald" className="text-xs font-bold">
-                  Claim This Profile Free →
+              <Link href={`/business/claim?company=${company.slug}`} className="block pt-1">
+                <Button size="sm" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-sm">
+                  <Shield className="w-3.5 h-3.5" /> Claim Profile Free →
                 </Button>
               </Link>
             </Card>

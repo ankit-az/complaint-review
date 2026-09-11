@@ -95,7 +95,89 @@ export const getCategoryBySlug = asyncHandler(async (req, res) => {
   return sendSuccess(res, { category: formatted }, "Category details retrieved");
 });
 
+export const createCategory = asyncHandler(async (req, res) => {
+  const { name, slug, description, iconName } = req.body;
+  if (!name || name.trim().length < 2) {
+    throw new AppError("Category name must be at least 2 characters long", 400);
+  }
+
+  const finalSlug = (slug || name)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  const existing = await prisma.category.findFirst({
+    where: {
+      OR: [
+        { slug: finalSlug },
+        { name: { equals: name.trim(), mode: "insensitive" } },
+      ],
+    },
+  });
+
+  if (existing) {
+    throw new AppError("Category with this name or slug already exists", 409);
+  }
+
+  const category = await prisma.category.create({
+    data: {
+      name: name.trim(),
+      slug: finalSlug,
+      description: description?.trim() || null,
+      iconName: iconName?.trim() || "FolderOpen",
+    },
+  });
+
+  return sendSuccess(res, { category }, "Category created successfully", 201);
+});
+
+export const updateCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, slug, description, iconName } = req.body;
+
+  const existing = await prisma.category.findUnique({ where: { id } });
+  if (!existing) {
+    throw new AppError("Category not found", 404);
+  }
+
+  const updated = await prisma.category.update({
+    where: { id },
+    data: {
+      ...(name ? { name: name.trim() } : {}),
+      ...(slug ? { slug: slug.trim().toLowerCase() } : {}),
+      ...(description !== undefined ? { description: description?.trim() || null } : {}),
+      ...(iconName !== undefined ? { iconName: iconName?.trim() || "FolderOpen" } : {}),
+    },
+  });
+
+  return sendSuccess(res, { category: updated }, "Category updated successfully");
+});
+
+export const deleteCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const existing = await prisma.category.findUnique({
+    where: { id },
+    include: { _count: { select: { companies: true } } },
+  });
+
+  if (!existing) {
+    throw new AppError("Category not found", 404);
+  }
+
+  if (existing._count?.companies > 0) {
+    throw new AppError("Cannot delete category with associated companies", 400);
+  }
+
+  await prisma.category.delete({ where: { id } });
+  return sendSuccess(res, null, "Category deleted successfully");
+});
+
 export default {
   getCategories,
   getCategoryBySlug,
+  createCategory,
+  updateCategory,
+  deleteCategory,
 };
+

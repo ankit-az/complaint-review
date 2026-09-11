@@ -128,8 +128,11 @@ export const authorize = (...roles) => {
   };
 };
 
+export const requireRole = authorize;
+
 export default {
   authenticate,
   optionalAuthenticate,
   authorize,
+  requireRole,
 };

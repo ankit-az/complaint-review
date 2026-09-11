@@ -274,8 +274,8 @@ async function main() {
       description: "Enterprise cloud infrastructure, Kubernetes clusters, and zero-downtime migrations.",
       websiteUrl: "https://cloudscale.example",
       categoryId: createdCategories["technology"]?.id,
-      isClaimed: true,
-      isVerified: true,
+      isClaimed: false,
+      isVerified: false,
       overallRating: 4.9,
       reviewCount: 42,
       star5Count: 38,
@@ -290,8 +290,8 @@ async function main() {
       description: "Border-free digital business accounts and transparent currency exchanges.",
       websiteUrl: "https://finova.example",
       categoryId: createdCategories["banking-finance"]?.id,
-      isClaimed: true,
-      isVerified: true,
+      isClaimed: false,
+      isVerified: false,
       overallRating: 4.4,
       reviewCount: 28,
       star5Count: 18,
@@ -306,8 +306,8 @@ async function main() {
       description: "Global freight forwarding, time-critical logistics, temperature-controlled transport, and end-to-end supply chain telemetry.",
       websiteUrl: "https://apexlogistics.example",
       categoryId: createdCategories["logistics-shipping"]?.id || createdCategories["services"]?.id,
-      isClaimed: true,
-      isVerified: true,
+      isClaimed: false,
+      isVerified: false,
       overallRating: 4.8,
       reviewCount: 35,
       star5Count: 30,
@@ -322,8 +322,8 @@ async function main() {
       description: "Financial infrastructure and payment processing for the internet.",
       websiteUrl: "https://stripe.com",
       categoryId: createdCategories["banking-finance"]?.id,
-      isClaimed: true,
-      isVerified: true,
+      isClaimed: false,
+      isVerified: false,
       overallRating: 4.8,
       reviewCount: 64,
       star5Count: 55,
@@ -472,9 +472,11 @@ async function main() {
         });
       }
     }
-  }
-
   console.log("✅ Seeded sample companies, authentic reviews, and company responses.");
+
+  // Seed Blog Categories and Posts into DB
+  const { seedBlogs } = await import("./seed_blogs.js");
+  await seedBlogs();
 }
 
 main()

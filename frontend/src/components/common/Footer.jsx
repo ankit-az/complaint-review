@@ -234,6 +234,14 @@ export function Footer() {
             <ul className="space-y-2.5 text-xs">
               <li>
                 <Link
+                  href="/blog"
+                  className="hover:text-emerald-400 transition-colors"
+                >
+                  The Complaint-Review Blog
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/guidelines"
                   className="hover:text-emerald-400 transition-colors"
                 >

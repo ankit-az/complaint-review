@@ -29,11 +29,6 @@ export default function BusinessLandingPage() {
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
 
         <div className="relative mx-auto max-w-5xl text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>ComplaintReview for Businesses</span>
-          </div>
-
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
             Turn Real Customer Trust Into Your{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">

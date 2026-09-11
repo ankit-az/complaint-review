@@ -308,10 +308,11 @@ function WriteReviewContent() {
         const res = await api.get(`/companies?q=${encodeURIComponent(searchQuery.trim())}`);
         if (res?.success && res.data?.companies?.length > 0) {
           const apiCompanies = res.data.companies.map((c) => ({
-            id: c.slug || String(c.id),
+            id: c.id,
+            slug: c.slug,
             name: c.name,
             website: c.websiteUrl || `www.${c.slug || c.name.toLowerCase().replace(/\s+/g, "")}.com`,
-            rating: c.overallRating || 4.5,
+            rating: c.overallRating || 0,
             reviewCount: c.reviewCount || 0,
             category: c.category?.name || "General",
             fallbackIcon: "🏢",
@@ -475,12 +476,6 @@ function WriteReviewContent() {
         </div>
 
         <div className="max-w-4xl mx-auto relative z-20">
-          {/* Trust badge matching theme */}
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-700/20 bg-white/75 backdrop-blur-xs px-3.5 py-1 text-xs font-semibold text-emerald-900 mb-4 shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Verified Review Standard</span>
-          </div>
-
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[44px] font-black text-slate-900 tracking-tight leading-tight">
             Share your experience
           </h1>
@@ -766,9 +761,6 @@ function WriteReviewContent() {
             {reviewSubmitted ? (
               <div className="text-center py-6 sm:py-8">
                 <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto mb-4 animate-bounce" />
-                <span className="inline-block px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
-                  Live on ComplaintReview
-                </span>
                 <h3 className="text-2xl font-black text-slate-900">
                   Review Published Successfully!
                 </h3>

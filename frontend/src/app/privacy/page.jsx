@@ -13,10 +13,6 @@ export default function PrivacyPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mb-4">
-            <Lock className="w-3.5 h-3.5" />
-            Data Protection
-          </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-3">
             Privacy Policy
           </h1>

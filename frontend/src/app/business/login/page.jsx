@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/store/AuthContext";
 import {
   Shield,
@@ -18,8 +18,10 @@ import {
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
-export default function BusinessLoginPage() {
+function BusinessLoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams?.get("redirect");
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -37,7 +39,9 @@ export default function BusinessLoginPage() {
       const res = await login(email, password);
       if (res?.success) {
         const user = res.data?.user;
-        if (user?.role === "BUSINESS" || user?.role === "ADMIN") {
+        if (redirectParam) {
+          router.push(redirectParam);
+        } else if (user?.role === "BUSINESS" || user?.role === "ADMIN") {
           router.push("/business/dashboard");
         } else {
           router.push("/business/claim");
@@ -88,62 +92,57 @@ export default function BusinessLoginPage() {
             <Input
               label="Business Email Address"
               type="email"
+              placeholder="owner@yourcompany.com"
               icon={Mail}
-              placeholder="owner@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="email"
             />
 
-            <div className="space-y-1.5">
-              <Input
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                icon={Lock}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                rightElement={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-slate-700">Password</label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-semibold text-emerald-600 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••••••"
+                  icon={Lock}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
-                <span>Remember this workstation</span>
-              </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <Button
               type="submit"
               variant="emerald"
               size="lg"
+              className="w-full font-bold shadow-lg shadow-emerald-500/20"
               isLoading={isLoading}
-              className="w-full font-bold shadow-md shadow-emerald-600/20"
             >
-              Sign In to Business Portal
+              Sign In to Dashboard
             </Button>
           </form>
 
-          {/* Demo Pre-fill helper */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-2">
+          {/* Quick Demo Fill Helper */}
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-700">Demo Account:</span>
+              <span className="font-bold text-slate-700">Need Demo Access?</span>
               <button
                 type="button"
                 onClick={handleQuickFillAdmin}
@@ -186,5 +185,13 @@ export default function BusinessLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BusinessLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-xs">Loading...</div>}>
+      <BusinessLoginContent />
+    </Suspense>
   );
 }
