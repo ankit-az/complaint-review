@@ -75,6 +75,14 @@ export const createReview = asyncHandler(async (req, res) => {
     throw new AppError("You must be logged in to submit a review.", 401);
   }
 
+  // 1. Enforce Role Restriction: Business accounts cannot post customer reviews
+  if (req.user.role === "BUSINESS") {
+    throw new AppError(
+      "Business accounts are not permitted to submit customer reviews. Please log in with a consumer account to write a review.",
+      403
+    );
+  }
+
   const { companyId, companySlug, companyName, rating, title, content } = req.body;
 
   if (!rating || !title || !content) {
@@ -94,7 +102,7 @@ export const createReview = asyncHandler(async (req, res) => {
     throw new AppError("Review content must be at least 10 characters long.", 400);
   }
 
-  // 1. Resolve company by id, slug, or name
+  // 2. Resolve company by id, slug, or name
   let company = null;
   if (companyId) {
     company = await prisma.company.findFirst({
@@ -146,7 +154,22 @@ export const createReview = asyncHandler(async (req, res) => {
     throw new AppError("Target company could not be resolved. Please specify a valid company.", 404);
   }
 
-  // 2. Create the authentic review record in PostgreSQL
+  // 3. Conflict of interest check: Ensure reviewer does not manage or own this company
+  const managedProfile = await prisma.businessProfile.findFirst({
+    where: {
+      userId: req.user.id,
+      companyId: company.id,
+    },
+  });
+
+  if (managedProfile) {
+    throw new AppError(
+      "Conflict of interest: You cannot submit a review for a company you manage or own.",
+      403
+    );
+  }
+
+  // 4. Create the authentic review record in PostgreSQL
   const review = await prisma.review.create({
     data: {
       userId: req.user.id,

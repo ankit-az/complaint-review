@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -162,23 +164,42 @@ async function main() {
 
   const createdCategories = {};
   for (const cat of categories) {
-    const record = await prisma.category.upsert({
-      where: { slug: cat.slug },
-      update: cat,
-      create: cat,
+    let record = await prisma.category.findFirst({
+      where: { OR: [{ slug: cat.slug }, { name: cat.name }] },
     });
+    if (record) {
+      record = await prisma.category.update({
+        where: { id: record.id },
+        data: { description: cat.description, iconName: cat.iconName },
+      });
+    } else {
+      record = await prisma.category.create({ data: cat });
+    }
     createdCategories[cat.slug] = record;
   }
   console.log(`✅ Seeded ${Object.keys(createdCategories).length} categories.`);
 
-  // 2. Create Demo Admin and Users
-  const passwordHash = await bcrypt.hash("Admin@123456", 12);
+  // 2. Create the Three System Accounts from .env
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@gmail.com";
+  const ADMIN_PASS = process.env.ADMIN_PASS || "complaintReview@2026Admin";
+  const USER_EMAIL = process.env.USER_EMAIL || process.env.USER_EMIAL || "user@gmail.com";
+  const USER_PASS = process.env.USER_PASS || "complaintReview@2026User";
+  const BUSINESS_EMAIL = process.env.BUSINESS_EMAIL || "business@gmail.com";
+  const BUSINESS_PASS = process.env.BUSINESS_PASS || "complaintReview@2026Business";
+
+  const adminPasswordHash = await bcrypt.hash(ADMIN_PASS, 12);
   const adminUser = await prisma.user.upsert({
-    where: { email: "admin@complaint-review.com" },
-    update: {},
+    where: { email: ADMIN_EMAIL },
+    update: {
+      passwordHash: adminPasswordHash,
+      role: "ADMIN",
+      isVerified: true,
+      firstName: "Platform",
+      lastName: "Administrator",
+    },
     create: {
-      email: "admin@complaint-review.com",
-      passwordHash,
+      email: ADMIN_EMAIL,
+      passwordHash: adminPasswordHash,
       firstName: "Platform",
       lastName: "Administrator",
       role: "ADMIN",
@@ -186,85 +207,90 @@ async function main() {
     },
   });
 
-  const marcusUser = await prisma.user.upsert({
-    where: { email: "marcus.vance@example.com" },
-    update: {},
+  const userPasswordHash = await bcrypt.hash(USER_PASS, 12);
+  const standardUser = await prisma.user.upsert({
+    where: { email: USER_EMAIL },
+    update: {
+      passwordHash: userPasswordHash,
+      role: "USER",
+      isVerified: true,
+      firstName: "Regular",
+      lastName: "User",
+    },
     create: {
-      email: "marcus.vance@example.com",
-      passwordHash,
-      firstName: "Marcus",
-      lastName: "Vance",
+      email: USER_EMAIL,
+      passwordHash: userPasswordHash,
+      firstName: "Regular",
+      lastName: "User",
       role: "USER",
       isVerified: true,
     },
   });
 
-  const elenaUser = await prisma.user.upsert({
-    where: { email: "elena.rostova@example.com" },
-    update: {},
-    create: {
-      email: "elena.rostova@example.com",
-      passwordHash,
-      firstName: "Elena",
-      lastName: "Rostova",
-      role: "USER",
+  const businessPasswordHash = await bcrypt.hash(BUSINESS_PASS, 12);
+  const businessUser = await prisma.user.upsert({
+    where: { email: BUSINESS_EMAIL },
+    update: {
+      passwordHash: businessPasswordHash,
+      role: "BUSINESS",
       isVerified: true,
+      firstName: "Business",
+      lastName: "Representative",
     },
-  });
-
-  const davidUser = await prisma.user.upsert({
-    where: { email: "david.chen@example.com" },
-    update: {},
     create: {
-      email: "david.chen@example.com",
-      passwordHash,
-      firstName: "David",
-      lastName: "Chen",
-      role: "USER",
-      isVerified: true,
-    },
-  });
-
-  const sophiaUser = await prisma.user.upsert({
-    where: { email: "sophia.mansoor@example.com" },
-    update: {},
-    create: {
-      email: "sophia.mansoor@example.com",
-      passwordHash,
-      firstName: "Sophia",
-      lastName: "Al-Mansoor",
-      role: "USER",
-      isVerified: true,
-    },
-  });
-
-  const cloudScaleRep = await prisma.user.upsert({
-    where: { email: "rep@cloudscale.example" },
-    update: {},
-    create: {
-      email: "rep@cloudscale.example",
-      passwordHash,
-      firstName: "CloudScale",
-      lastName: "Support",
+      email: BUSINESS_EMAIL,
+      passwordHash: businessPasswordHash,
+      firstName: "Business",
+      lastName: "Representative",
       role: "BUSINESS",
       isVerified: true,
     },
   });
 
-  const finovaRep = await prisma.user.upsert({
-    where: { email: "rep@finova.example" },
-    update: {},
-    create: {
-      email: "rep@finova.example",
-      passwordHash,
-      firstName: "Finova",
-      lastName: "Operations",
-      role: "BUSINESS",
-      isVerified: true,
-    },
+  // Purge any legacy demo accounts
+  const legacyEmails = [
+    "admin@complaint-review.com",
+    "demo@complaint-review.com",
+    "marcus.vance@example.com",
+    "elena.rostova@example.com",
+    "david.chen@example.com",
+    "sophia.mansoor@example.com",
+    "rep@cloudscale.example",
+    "rep@finova.example",
+    "liam.foster@example.com",
+    "chloe.bennett@example.com",
+    "biztest_1788861963297@example.com",
+    "john.doe@example.com",
+    "testuser_83987@example.com",
+  ];
+
+  const legacyUsers = await prisma.user.findMany({
+    where: { email: { in: legacyEmails } },
+    select: { id: true },
   });
 
-  console.log("✅ Seeded demo users.");
+  if (legacyUsers.length > 0) {
+    const legacyIds = legacyUsers.map((u) => u.id);
+    await prisma.review.updateMany({
+      where: { userId: { in: legacyIds } },
+      data: { userId: standardUser.id },
+    });
+    await prisma.companyResponse.updateMany({
+      where: { responderId: { in: legacyIds } },
+      data: { responderId: businessUser.id },
+    });
+    await prisma.businessProfile.deleteMany({
+      where: { userId: { in: legacyIds } },
+    });
+    await prisma.refreshToken.deleteMany({
+      where: { userId: { in: legacyIds } },
+    });
+    await prisma.user.deleteMany({
+      where: { id: { in: legacyIds } },
+    });
+  }
+
+  console.log("✅ Seeded .env accounts (Admin, User, Business) and cleaned up legacy accounts.");
 
   // 3. Create Sample Companies
   const companies = [
@@ -344,61 +370,57 @@ async function main() {
     seededCompanies[comp.slug] = companyRecord;
   }
 
-  const liamUser = await prisma.user.upsert({
-    where: { email: "liam.foster@example.com" },
-    update: {},
-    create: {
-      email: "liam.foster@example.com",
-      passwordHash,
-      firstName: "Liam",
-      lastName: "Foster",
-      role: "USER",
-      isVerified: true,
-    },
-  });
+  // Link business user to CloudScale Hosting
+  if (seededCompanies["cloudscale-hosting"]) {
+    await prisma.businessProfile.upsert({
+      where: { userId: businessUser.id },
+      update: {
+        companyId: seededCompanies["cloudscale-hosting"].id,
+        jobTitle: "Owner & Managing Director",
+        isOwner: true,
+        isApproved: true,
+      },
+      create: {
+        userId: businessUser.id,
+        companyId: seededCompanies["cloudscale-hosting"].id,
+        jobTitle: "Owner & Managing Director",
+        isOwner: true,
+        isApproved: true,
+      },
+    });
 
-  const chloeUser = await prisma.user.upsert({
-    where: { email: "chloe.bennett@example.com" },
-    update: {},
-    create: {
-      email: "chloe.bennett@example.com",
-      passwordHash,
-      firstName: "Chloe",
-      lastName: "Bennett",
-      role: "USER",
-      isVerified: true,
-    },
-  });
+    await prisma.company.update({
+      where: { id: seededCompanies["cloudscale-hosting"].id },
+      data: { isClaimed: true, isVerified: true },
+    });
+  }
 
   // 4. Seed Verified Reviews & Company Responses
   const reviewsData = [
     {
       companySlug: "cloudscale-hosting",
-      user: marcusUser,
+      user: standardUser,
       rating: 5,
       title: "Phenomenal zero-downtime migration and rapid support",
       content: "Migrated over 40 client websites with zero hiccups. When we needed help with custom SSL certificates, their support engineer answered within 4 minutes on live chat.",
       helpfulCount: 18,
       response: {
-        responder: cloudScaleRep,
-        content: "Thank you Marcus! We take great pride in our 24/7 technical engineering team and automated zero-downtime migration pipelines. We are excited to support your continued growth.",
+        responder: businessUser,
+        content: "Thank you! We take great pride in our 24/7 technical engineering team and automated zero-downtime migration pipelines. We are excited to support your continued growth.",
       },
     },
     {
       companySlug: "finova-banking",
-      user: elenaUser,
+      user: standardUser,
       rating: 4,
       title: "Clean mobile UI, fast international wire transfers",
       content: "Been using Finova for business cross-border payments. The exchange rates are transparent with no hidden margins. Account verification took less than 24 hours.",
       helpfulCount: 9,
-      response: {
-        responder: finovaRep,
-        content: "Thank you Elena for the insightful feedback! We've just expanded our direct SEPA and SWIFT corridors to bring settlement speeds down to under an hour.",
-      },
+      response: null,
     },
     {
       companySlug: "apex-logistics",
-      user: davidUser,
+      user: standardUser,
       rating: 5,
       title: "Delivered sensitive freight across country on time",
       content: "Real-time GPS telemetry and proactive dispatchers kept us updated at every checkpoint. No damages and arrived 3 hours ahead of scheduled delivery window.",
@@ -407,7 +429,7 @@ async function main() {
     },
     {
       companySlug: "stripe",
-      user: sophiaUser,
+      user: standardUser,
       rating: 5,
       title: "Developer-first payments API that just works at scale",
       content: "Integrated Stripe Checkout and recurring subscription billing in under two days. The webhook reliability and automated sales tax calculation saved our engineering team months of custom work.",
@@ -416,7 +438,7 @@ async function main() {
     },
     {
       companySlug: "cloudscale-hosting",
-      user: liamUser,
+      user: standardUser,
       rating: 5,
       title: "Rock-solid 99.99% infrastructure uptime for SaaS workloads",
       content: "We have been hosting our multi-tenant SaaS application on CloudScale for 14 months. Dedicated VPC networking, auto-scaling, and NVMe block storage have exceeded all performance benchmarks.",
@@ -425,7 +447,7 @@ async function main() {
     },
     {
       companySlug: "stripe",
-      user: chloeUser,
+      user: standardUser,
       rating: 5,
       title: "Effortless global currency conversions and fraud prevention",
       content: "Stripe Radar intercepted several suspicious card testing attempts before they caused chargebacks. The automated currency conversions allow us to bill international clients seamlessly.",
@@ -472,6 +494,7 @@ async function main() {
         });
       }
     }
+  }
   console.log("✅ Seeded sample companies, authentic reviews, and company responses.");
 
   // Seed Blog Categories and Posts into DB

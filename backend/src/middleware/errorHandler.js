@@ -11,7 +11,8 @@ export const errorHandler = (err, req, res, next) => {
   // Zod validation error
   if (err instanceof ZodError) {
     statusCode = 400;
-    message = "Validation failed";
+    const detailMessages = err.issues.map((issue) => issue.message).filter(Boolean);
+    message = detailMessages.length > 0 ? detailMessages.join(". ") : "Validation failed";
     errors = err.issues.map((issue) => ({
       field: issue.path.join("."),
       message: issue.message,

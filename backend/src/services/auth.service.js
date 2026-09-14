@@ -42,7 +42,7 @@ export const registerUser = async ({ email, password, firstName, lastName, role 
       email: normalizedEmail,
       passwordHash,
       firstName: firstName.trim(),
-      lastName: lastName.trim(),
+      lastName: (lastName || "").trim(),
       role,
     },
     select: {

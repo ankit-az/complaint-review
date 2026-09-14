@@ -41,12 +41,32 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!formData.firstName.trim()) {
+      setError("Please enter your first name.");
+      return;
+    }
+
+    if (!formData.email.trim() || !formData.email.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const res = await register(formData);
       if (res?.success) {
-        router.push("/dashboard");
+        if (formData.role === "BUSINESS") {
+          router.push("/business/dashboard");
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
@@ -122,12 +142,11 @@ export default function RegisterPage() {
               required
             />
             <Input
-              label="Last Name"
+              label="Last Name (Optional)"
               type="text"
               placeholder="Doe"
               value={formData.lastName}
               onChange={(e) => handleChange("lastName", e.target.value)}
-              required
             />
           </div>
 
@@ -146,12 +165,12 @@ export default function RegisterPage() {
             label="Password"
             type={showPassword ? "text" : "password"}
             icon={Lock}
-            placeholder="At least 8 characters"
+            placeholder="At least 6 characters"
             value={formData.password}
             onChange={(e) => handleChange("password", e.target.value)}
             required
             autoComplete="new-password"
-            helperText="Must be at least 8 characters with letters & numbers"
+            helperText="Must be at least 6 characters"
             rightElement={
               <button
                 type="button"

@@ -23,6 +23,7 @@ import {
   Loader2,
   ArrowRight,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 
 // Star rating block matching the ComplaintReview emerald design system
@@ -425,6 +426,12 @@ function WriteReviewContent() {
       return;
     }
 
+    // Business accounts cannot submit reviews
+    if (user.role === "BUSINESS") {
+      setSubmitError("Business accounts cannot submit customer reviews. Please log out and sign in with a consumer account.");
+      return;
+    }
+
     await performReviewSubmission();
   };
 
@@ -434,33 +441,29 @@ function WriteReviewContent() {
     setAuthLoading(true);
 
     try {
+      let authUser = null;
       if (authMode === "login") {
-        await login(authEmail, authPassword);
+        const res = await login(authEmail, authPassword);
+        authUser = res?.user || res?.data?.user;
       } else {
-        await registerUser({
+        const res = await registerUser({
           firstName: authFirstName,
           lastName: authLastName,
           email: authEmail,
           password: authPassword,
         });
+        authUser = res?.user || res?.data?.user;
       }
+
+      if (authUser?.role === "BUSINESS") {
+        setAuthError("Business accounts cannot submit customer reviews. Please log in with a consumer account.");
+        return;
+      }
+
       // Successfully authenticated! Proceed with review submission directly
       await performReviewSubmission();
     } catch (err) {
       setAuthError(err.message || "Authentication failed. Please verify credentials.");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleQuickDemoLogin = async () => {
-    setAuthError(null);
-    setAuthLoading(true);
-    try {
-      await login("demo@complaint-review.com", "Admin@123456");
-      await performReviewSubmission();
-    } catch (err) {
-      setAuthError(err.message || "Demo login failed");
     } finally {
       setAuthLoading(false);
     }
@@ -482,6 +485,22 @@ function WriteReviewContent() {
           <p className="text-base sm:text-lg text-slate-800 font-medium mt-3 mb-8">
             Help others make the right choice.
           </p>
+
+          {user && user.role === "BUSINESS" && (
+            <div className="max-w-2xl mx-auto mb-6 p-3.5 bg-amber-50/95 border border-amber-300 rounded-2xl text-xs text-amber-900 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>
+                  You are currently signed in as a <strong>Business Account</strong> (<strong>{user.email}</strong>). Business accounts cannot post customer reviews.
+                </span>
+              </div>
+              <Link href="/business/dashboard" className="shrink-0">
+                <Button variant="outline" size="sm" className="font-bold border-amber-300 text-amber-900 bg-white hover:bg-amber-100 text-[11px]">
+                  Business Portal
+                </Button>
+              </Link>
+            </div>
+          )}
 
           {/* Search bar container with high z-index and ref for outside-click */}
           <div ref={searchContainerRef} className="relative max-w-2xl mx-auto z-40">
@@ -918,15 +937,6 @@ function WriteReviewContent() {
 
                     <button
                       type="button"
-                      onClick={handleQuickDemoLogin}
-                      disabled={authLoading || submittingReview}
-                      className="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer text-center"
-                    >
-                      ⚡ Quick Sign-In as Demo User (Marcus Vance)
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setShowAuthModal(false)}
                       className="text-xs text-slate-500 hover:text-slate-800 text-center pt-1 cursor-pointer"
                     >
@@ -949,6 +959,18 @@ function WriteReviewContent() {
                     <p className="text-xs text-slate-500">{selectedCompany.website}</p>
                   </div>
                 </div>
+
+                {user && user.role === "BUSINESS" && (
+                  <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-amber-950">Business Account Notice</p>
+                      <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                        You are currently signed in with a Business account (<strong>{user.email}</strong>). Business accounts are not permitted to submit customer reviews. Please log out or sign in with a consumer (User) account to submit a review.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {!user && (
                   <div className="mb-4 p-2.5 rounded-lg bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900 flex items-center gap-2">
@@ -1058,30 +1080,43 @@ function WriteReviewContent() {
                     >
                       Cancel
                     </button>
-                    <Button
-                      type="submit"
-                      variant="emerald"
-                      size="md"
-                      disabled={submittingReview}
-                      className="font-bold shadow-xs cursor-pointer gap-1.5"
-                    >
-                      {submittingReview ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Publishing...
-                        </>
-                      ) : !user ? (
-                        <>
-                          <Lock className="w-4 h-4" />
-                          Sign In &amp; Submit Review
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Submit Verified Review
-                        </>
-                      )}
-                    </Button>
+                    {user && user.role === "BUSINESS" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="md"
+                        disabled
+                        className="font-bold text-amber-800 bg-amber-50 border-amber-300 opacity-90 cursor-not-allowed gap-1.5"
+                      >
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        Business Accounts Cannot Review
+                      </Button>
+                    ) : (
+                      <Button
+                        type="submit"
+                        variant="emerald"
+                        size="md"
+                        disabled={submittingReview}
+                        className="font-bold shadow-xs cursor-pointer gap-1.5"
+                      >
+                        {submittingReview ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Publishing...
+                          </>
+                        ) : !user ? (
+                          <>
+                            <Lock className="w-4 h-4" />
+                            Sign In &amp; Submit Review
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Submit Verified Review
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </form>
               </div>

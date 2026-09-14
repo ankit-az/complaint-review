@@ -124,13 +124,6 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        {/* Demo credentials tip */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-500 space-y-1">
-          <p className="font-semibold text-slate-700">Pre-seeded Demo Accounts:</p>
-          <p>• Admin: <span className="font-mono text-slate-800">admin@complaint-review.com</span> / <span className="font-mono text-slate-800">Admin@123456</span></p>
-          <p>• User: <span className="font-mono text-slate-800">demo@complaint-review.com</span> / <span className="font-mono text-slate-800">Admin@123456</span></p>
-        </div>
-
         {/* Footer */}
         <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
           Don't have an account yet?{" "}

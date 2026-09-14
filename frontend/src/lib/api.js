@@ -46,8 +46,14 @@ async function request(endpoint, options = {}) {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const errorMessage =
-        data?.message || `Request failed with status ${response.status}`;
+      let errorMessage = data?.message;
+      if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        const fieldErrors = data.errors.map((e) => e.message).filter(Boolean);
+        if (fieldErrors.length > 0) {
+          errorMessage = fieldErrors.join(". ");
+        }
+      }
+      errorMessage = errorMessage || `Request failed with status ${response.status}`;
       const errors = data?.errors || [];
       throw new ApiError(errorMessage, response.status, errors);
     }

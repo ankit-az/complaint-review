@@ -54,11 +54,6 @@ function BusinessLoginContent() {
     }
   };
 
-  const handleQuickFillAdmin = () => {
-    setEmail("admin@complaint-review.com");
-    setPassword("Admin@123456");
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Glow */}
@@ -138,23 +133,6 @@ function BusinessLoginContent() {
               Sign In to Dashboard
             </Button>
           </form>
-
-          {/* Quick Demo Fill Helper */}
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-700">Need Demo Access?</span>
-              <button
-                type="button"
-                onClick={handleQuickFillAdmin}
-                className="text-[11px] font-semibold text-emerald-600 hover:underline cursor-pointer"
-              >
-                Auto-fill Demo Admin
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-500 font-mono">
-              admin@complaint-review.com / Admin@123456
-            </p>
-          </div>
 
           <div className="pt-4 border-t border-slate-100 flex flex-col gap-2 text-center text-xs text-slate-500">
             <div>
